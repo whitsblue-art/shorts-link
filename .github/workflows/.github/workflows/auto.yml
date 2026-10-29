@@ -1,1 +1,29 @@
+name: Auto Shop-the-Look Runner
 
+on:
+  schedule:
+    - cron: '0 0 * * *' # 매일 자정(UTC 기준)에 자동 실행
+  workflow_dispatch: # 수동으로도 언제든 버튼을 눌러 실행 가능
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Run automation script
+        run: python main.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add products.json
+          git commit -m "🤖 자동화 로봇: 신규 추천 상품 업데이트" || echo "No changes to commit"
+          git push
