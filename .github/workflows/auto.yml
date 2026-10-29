@@ -2,10 +2,9 @@ name: Auto Shop-the-Look Runner
 
 on:
   schedule:
-    - cron: '0 0 * * *' # 매일 자정(UTC 기준)에 자동 실행
-  workflow_dispatch: # 수동으로 버튼을 눌러 언제든 실행 가능
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
-# 🔑 [핵심] 깃허브 액션이 파일 수정 권한을 가질 수 있도록 설정 추가
 permissions:
   contents: write
 
@@ -17,7 +16,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: setup-python@v4
+        uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
