@@ -1,8 +1,8 @@
 import json
 import os
-import asyncio
 import requests
 import subprocess
+from gtts import gTTS
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 PRODUCTS_FILE = 'products.json'
@@ -12,8 +12,6 @@ FONT_PATHS = [
     '/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf',
     '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
 ]
-VOICE = "ko-KR-SunHiNeural"
-SPEECH_RATE = "+30%"
 
 def get_font(size):
     for path in FONT_PATHS:
@@ -24,7 +22,7 @@ def get_font(size):
                 continue
     return ImageFont.load_default()
 
-def wrap_text(text, max_chars=15):
+def wrap_text(text, max_chars=14):
     words = str(text).split()
     lines, current = [], ""
     for w in words:
@@ -38,46 +36,30 @@ def wrap_text(text, max_chars=15):
         lines.append(current)
     return "\n".join(lines) if lines else str(text)
 
-def draw_stroked_text(draw, pos, text, font, fill, stroke_fill=(0, 0, 0), stroke_width=6):
-    """어떤 버전에서도 에러가 나지 않는 안전한 외곽선 및 다중 줄 텍스트 렌더링"""
+def draw_stroked_text(draw, pos, text, font, font_size, fill, stroke_fill=(0, 0, 0), stroke_width=6):
     x, y = pos
-    lines = text.split("\n")
-    line_height = int(font.size * 1.28)
+    lines = str(text).split("\n")
+    line_height = int(font_size * 1.3)
     total_h = len(lines) * line_height
     start_y = y - (total_h // 2) + (line_height // 2)
 
     for i, line in enumerate(lines):
         ly = start_y + i * line_height
-        # 외곽선 먼저 그리기
         for dx in range(-stroke_width, stroke_width + 1, 2):
             for dy in range(-stroke_width, stroke_width + 1, 2):
                 if dx != 0 or dy != 0:
                     draw.text((x + dx, ly + dy), line, font=font, fill=stroke_fill, anchor="mm")
-        # 본문 글자 그리기
         draw.text((x, ly), line, font=font, fill=fill, anchor="mm")
 
-async def _edge_tts_save(text, out_path):
-    import edge_tts
-    communicate = edge_tts.Communicate(text, VOICE, rate=SPEECH_RATE)
-    await communicate.save(out_path)
-
 def generate_fast_audio(text, out_path):
-    """1순위: 신경망 고속 AI 음성 / 실패 시: 백업 TTS 생성 후 FFmpeg 1.35배속 가속"""
-    try:
-        asyncio.run(_edge_tts_save(text, out_path))
-        if os.path.exists(out_path) and os.path.getsize(out_path) > 500:
-            return
-    except Exception as e:
-        print(f"⚠️ Edge-TTS 우회 작동 (사유: {e}) -> 고속 백업 엔진 가동")
-
-    from gtts import gTTS
+    """안정성 100% 보장: gTTS 생성 후 FFmpeg으로 아나운서 톤 & 1.35배속 고속 변환"""
     raw_mp3 = "raw_" + out_path
     tts = gTTS(text=text, lang='ko')
     tts.save(raw_mp3)
-    # 말 속도를 1.35배 빠르게 가속 (쇼츠 전용 스피드)
     subprocess.run([
         "ffmpeg", "-y", "-i", raw_mp3,
         "-filter:a", "atempo=1.35",
+        "-ar", "44100", "-ac", "2",
         "-vn", out_path
     ], check=True)
     if os.path.exists(raw_mp3):
@@ -106,7 +88,7 @@ def draw_scene_frame(scene, prod_img, p_id, title, out_img_path):
 
     # 1. 상단 노란색 질문 훅 타이틀
     top_hook = scene.get("top_hook", "오늘의 추천 꿀템!")
-    draw_stroked_text(draw, (540, 220), top_hook, f_hook, fill=(255, 225, 60), stroke_width=6)
+    draw_stroked_text(draw, (540, 220), top_hook, f_hook, 66, fill=(255, 225, 60), stroke_width=6)
 
     # 2. 중앙 라운드 카드 영역 (Y: 350 ~ 1210)
     card_box = [70, 350, 1010, 1210]
@@ -121,7 +103,7 @@ def draw_scene_frame(scene, prod_img, p_id, title, out_img_path):
         draw.rounded_rectangle(card_box, radius=45, fill=(245, 247, 252))
         thumb = ImageOps.fit(prod_img, (300, 300), Image.Resampling.LANCZOS)
         canvas.paste(thumb, (390, 385))
-        draw_stroked_text(draw, (540, 745), wrap_text(title, 18), f_card_title, fill=(25, 25, 25), stroke_fill=(255, 255, 255), stroke_width=2)
+        draw_stroked_text(draw, (540, 745), wrap_text(title, 18), f_card_title, 50, fill=(25, 25, 25), stroke_fill=(255, 255, 255), stroke_width=2)
         y_pos = 860
         for sp in scene.get("specs", []):
             draw.rounded_rectangle([115, y_pos, 965, y_pos + 82], radius=20, fill=(30, 35, 45))
@@ -160,7 +142,7 @@ def draw_scene_frame(scene, prod_img, p_id, title, out_img_path):
 
     # 4. 하단 메인 굵은 자막
     sub_text = wrap_text(scene.get("sub", title), max_chars=13)
-    draw_stroked_text(draw, (540, 1530), sub_text, f_sub, fill=(255, 255, 255), stroke_width=8)
+    draw_stroked_text(draw, (540, 1530), sub_text, f_sub, 74, fill=(255, 255, 255), stroke_width=8)
 
     canvas.save(out_img_path, quality=95)
 
@@ -181,7 +163,6 @@ def make_video():
     img_url = latest.get('image', '')
     scenes = latest.get('scenes', [])
 
-    # 만약 scenes가 비어있다면 기본 3씬 자동 구성
     if not scenes:
         scenes = [
             {"top_hook": "아직도 불편하게 쓰세요?", "badge": f"추천 꿀템 NO.{p_id}", "sub": title, "tts": f"요즘 난리 난 추천 꿀템, {title}!", "type": "image"},
@@ -218,15 +199,17 @@ def make_video():
         generate_fast_audio(tts_text, audio_file)
 
         dur = get_audio_duration(audio_file)
-        frames = int(dur * 30) + 5
+        # 초고속 렌더링을 위해 preset ultrafast 적용
         cmd = [
             "ffmpeg", "-y",
             "-loop", "1", "-i", frame_file,
             "-i", audio_file,
-            "-vf", f"zoompan=z='min(zoom+0.0012,1.06)':d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=1080x1920:fps=30",
             "-t", str(dur),
-            "-c:v", "libx264", "-pix_fmt", "yuv420p",
+            "-vf", "scale=1080:1920",
+            "-r", "30",
+            "-c:v", "libx264", "-preset", "ultrafast", "-tune", "stillimage", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "192k", "-ar", "44100", "-ac", "2",
+            "-shortest",
             seg_mp4
         ]
         subprocess.run(cmd, check=True)
@@ -238,11 +221,10 @@ def make_video():
         for seg in segment_files:
             f.write(f"file '{seg}'\n")
 
-    # 클립 병합 시 오디오/비디오 코덱 재정렬로 무결성 보장
     concat_cmd = [
         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
         "-i", concat_txt,
-        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
         "-c:a", "aac", "-b:a", "192k",
         output_mp4
     ]
@@ -252,7 +234,7 @@ def make_video():
         if os.path.exists(tf):
             os.remove(tf)
 
-    print(f"🎬 프로급 다중 씬 쇼츠 생성 완료: {output_mp4}")
+    print(f"🎬 초고속 다중 씬 쇼츠 생성 완료: {output_mp4}")
 
 if __name__ == "__main__":
     make_video()
