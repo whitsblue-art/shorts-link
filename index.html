@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트세이버 - 추천 꿀템 카탈로그</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #ffffff;
+            --sub-text: #a0a0a0;
+            --accent-color: #10B981;
+            --yellow-color: #FFD700;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        header h1 {
+            font-size: 22px;
+            margin: 10px 0 5px 0;
+            color: var(--yellow-color);
+        }
+        header p {
+            font-size: 14px;
+            color: var(--sub-text);
+            margin: 0;
+        }
+        .search-box {
+            position: sticky;
+            top: 15px;
+            z-index: 10;
+            background: rgba(18, 18, 18, 0.9);
+            padding: 10px 0;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .search-input {
+            width: 100%;
+            padding: 14px 18px;
+            box-sizing: border-box;
+            background-color: var(--card-bg);
+            border: 1px solid #333;
+            border-radius: 30px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .search-input:focus {
+            border-color: var(--accent-color);
+        }
+        .product-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .product-card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            text-decoration: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.2s, border-color 0.2s;
+            border: 1px solid #2a2a2a;
+        }
+        .product-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+        .product-img {
+            width: 85px;
+            height: 85px;
+            object-fit: cover;
+            border-radius: 12px;
+            flex-shrink: 0;
+            background-color: #333;
+        }
+        .product-info {
+            flex-grow: 1;
+            padding-left: 15px;
+            overflow: hidden;
+        }
+        .product-badge {
+            display: inline-block;
+            background-color: #332700;
+            color: var(--yellow-color);
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+            border: 1px solid #665000;
+        }
+        .product-title {
+            font-size: 15px;
+            font-weight: bold;
+            margin: 0;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            line-height: 1.3;
+        }
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 40px;
+            padding-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>스마트세이버 추천 꿀템</h1>
+        <p>쇼츠에서 보신 제품의 번호를 검색하거나 골라보세요!</p>
+    </header>
+
+    <div class="search-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 상품 번호 (예: 42) 또는 키워드 검색" onkeyup="filterProducts()">
+    </div>
+
+    <!-- 상품들이 자동으로 쌓이는 공간 -->
+    <div id="productList" class="product-list">
+        <!-- 자바스크립트가 products.json 파일을 읽어서 여기에 카드를 꽂아줍니다 -->
+    </div>
+
+    <div class="footer">
+        "이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다."
+    </div>
+</div>
+
+<script>
+    let allProducts = [];
+
+    // products.json에서 상품 데이터를 불러옴 (나중에 로봇이 이 파일을 자동으로 업데이트함)
+    fetch('products.json')
+        .then(response => response.json())
+        .then(data => {
+            allProducts = data;
+            renderProducts(allProducts);
+        })
+        .catch(error => {
+            console.error('데이터를 불러오지 못했습니다:', error);
+            document.getElementById('productList').innerHTML = '<p style="text-align:center; color:#888;">등록된 상품이 없습니다.</p>';
+        });
+
+    function renderProducts(products) {
+        const listDiv = document.getElementById('productList');
+        listDiv.innerHTML = '';
+
+        if (products.length === 0) {
+            listDiv.innerHTML = '<p style="text-align:center; color:#888;">검색 결과가 없습니다.</p>';
+            return;
+        }
+
+        products.forEach(item => {
+            const card = document.createElement('a');
+            card.href = item.coupang_url;
+            card.target = '_blank';
+            card.className = 'product-card';
+            card.setAttribute('data-id', item.id);
+            card.setAttribute('data-title', item.title);
+
+            card.innerHTML = `
+                <img src="${item.thumbnail}" alt="상품이미지" class="product-img">
+                <div class="product-info">
+                    <span class="product-badge">NO. ${item.id}</span>
+                    <h3 class="product-title">${item.title}</h3>
+                </div>
+            `;
+            listDiv.appendChild(card);
+        });
+    }
+
+    function filterProducts() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allProducts.filter(item => 
+            item.id.toString().includes(keyword) || 
+            item.title.toLowerCase().includes(keyword)
+        );
+        renderProducts(filtered);
+    }
+</script>
+
+</body>
+</html>
