@@ -3,74 +3,96 @@ import os
 
 PRODUCTS_FILE = 'products.json'
 
-# 로봇이 순차적으로 꺼내 쓸 자동화 상품 및 실제 고화질 이미지 데이터베이스
 AUTO_CATALOG = [
     {
         "title": "물 튀김 방지 360도 회전 코브라 수전 헤드",
         "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
-        "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300&auto=format&fit=crop&q=80"
+        "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80",
+        "scenes": [
+            {
+                "top_hook": "설거지할 때 물 튀김?",
+                "badge": "수압 약하고 물 튀는 싱크대?",
+                "sub": "바꾸기만 하면 끝나요!",
+                "tts": "설거지할 때마다 사방으로 튀는 물, 스트레스받으시죠?",
+                "type": "image"
+            },
+            {
+                "top_hook": "이 수전은 뭐가 다를까?",
+                "badge": "360도 자유자재 회전",
+                "sub": "구석구석 빈틈없이 세척",
+                "tts": "360도 회전 코브라 수전 헤드는 원하는 각도로 자유롭게 꺾입니다.",
+                "type": "image"
+            },
+            {
+                "top_hook": "수압도 강력할까?",
+                "badge": "초미세 물줄기 · 2단계 수압 조절",
+                "sub": "수압 상승 + 절수 효과까지",
+                "tts": "원터치로 폭포수 모드와 분사 모드를 바꿀 수 있어 수압이 확 살아나요.",
+                "type": "spec",
+                "specs": ["설치 시간 10초! 공구 없이 손으로 돌리면 끝", "녹물 제거 필터 기본 내장", "주방·욕실 세면대 모두 호환"]
+            },
+            {
+                "top_hook": "나한테 맞을까?",
+                "badge": "구매 전 필수 체크",
+                "sub": "지금 바로 바꿔보세요!",
+                "tts": "싱크대 수압이 약하거나 사각지대 청소가 힘드셨던 분께 딱 맞아요!",
+                "type": "checklist",
+                "checks": ["설거지할 때 옷이 자주 젖는 분", "싱크대 구석 물때 청소가 힘든 분", "수압을 강력하게 올리고 싶은 분"]
+            },
+            {
+                "top_hook": "어디서 살 수 있을까?",
+                "badge": "스마트세이버 추천 꿀템",
+                "sub": "프로필 링크에서 검색하세요!",
+                "tts": "지금 바로 프로필 링크에서 상품 번호를 검색해 최저가로 만나보세요!",
+                "type": "cta"
+            }
+        ]
     },
     {
         "title": "씽크대 거름망 자동 압축기",
         "link": "https://www.coupang.com/np/search?q=싱크대+거름망",
-        "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&auto=format&fit=crop&q=80"
+        "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80",
+        "scenes": [
+            {
+                "top_hook": "음식물 쓰레기 손으로 짜세요?",
+                "badge": "축축한 거름망, 손대기 싫다면?",
+                "sub": "손 안 대고 물기 쫙!",
+                "tts": "설거지 후 축축한 음식물 쓰레기, 아직도 손으로 만지시나요?",
+                "type": "image"
+            },
+            {
+                "top_hook": "어떻게 작동할까?",
+                "badge": "원터치 수분 압축 시스템",
+                "sub": "누르기만 하면 물기 제거",
+                "tts": "싱크대 거름망 자동 압축기는 위에서 누르기만 하면 물기를 쫙 빼줍니다.",
+                "type": "image"
+            },
+            {
+                "top_hook": "위생적일까?",
+                "badge": "악취 차단 · 날파리 꼬임 방지",
+                "sub": "음식물 부피 50% 감소",
+                "tts": "수분을 완전히 제거해 여름철 악취와 날파리 걱정까지 한 번에 잡아줘요.",
+                "type": "spec",
+                "specs": ["고급 스테인리스 및 항균 실리콘 소재", "표준 한국형 싱크대 배수구 완벽 호환", "식기세척기 열탕 소독 가능"]
+            },
+            {
+                "top_hook": "나한테 맞을까?",
+                "badge": "이런 분께 강추!",
+                "sub": "주방 삶의 질 수직 상승",
+                "tts": "음식물 쓰레기 비울 때마다 비위가 상하셨던 분께 완벽한 꿀템입니다.",
+                "type": "checklist",
+                "checks": ["음식물 쓰레기 만지기 싫은 자취생", "여름철 배수구 냄새가 고민인 분", "음식물 쓰레기 봉투값을 아끼고 싶은 분"]
+            },
+            {
+                "top_hook": "어디서 살 수 있을까?",
+                "badge": "스마트세이버 추천 꿀템",
+                "sub": "프로필 링크에서 검색하세요!",
+                "tts": "지금 바로 프로필 링크에서 상품 번호를 검색해 보세요!",
+                "type": "cta"
+            }
+        ]
     },
     {
         "title": "자석식 공중부양 무타공 양치컵 홀더 세트",
         "link": "https://www.coupang.com/np/search?q=자석+양치컵",
-        "image": "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=300&auto=format&fit=crop&q=80"
-    },
-    {
-        "title": "원터치 실리콘 자동 밀폐 쌀통 10kg",
-        "link": "https://www.coupang.com/np/search?q=밀폐+쌀통",
-        "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&auto=format&fit=crop&q=80"
-    },
-    {
-        "title": "초강력 틈새 먼지제거 정전기 청소포 막대걸레",
-        "link": "https://www.coupang.com/np/search?q=틈새+먼지떨이",
-        "image": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&auto=format&fit=crop&q=80"
-    },
-    {
-        "title": "다용도 회전식 주방 양념통 정리대 선반",
-        "link": "https://www.coupang.com/np/search?q=회전식+양념통+선반",
-        "image": "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=300&auto=format&fit=crop&q=80"
-    }
-]
-
-def update_catalog():
-    if os.path.exists(PRODUCTS_FILE):
-        with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
-            try:
-                products = json.load(f)
-            except json.JSONDecodeError:
-                products = []
-    else:
-        products = []
-
-    # 1. 기존 상품 중 회색 박스(빈 이미지)로 되어 있는 항목을 실제 사진으로 자동 교체
-    for p in products:
-        idx = p.get("id", 1) - 1
-        if not p.get("image") or "placeholder" in p.get("image", "") or "150" in p.get("image", ""):
-            p["image"] = AUTO_CATALOG[idx % len(AUTO_CATALOG)]["image"]
-
-    # 2. 다음 순번 신규 상품 및 이미지 자동 추가
-    next_id = max([p.get("id", 0) for p in products], default=0) + 1
-    template = AUTO_CATALOG[(next_id - 1) % len(AUTO_CATALOG)]
-
-    new_product = {
-        "id": next_id,
-        "title": template["title"],
-        "link": template["link"],
-        "image": template["image"]
-    }
-
-    # 최신 번호가 맨 위에 오도록 추가
-    products.insert(0, new_product)
-
-    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(products, f, ensure_ascii=False, indent=2)
-
-    print(f"✅ [NO.{next_id}] {new_product['title']} (실제 이미지 포함) 자동 업데이트 완료!")
-
-if __name__ == "__main__":
-    update_catalog()
+        "image": "
