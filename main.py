@@ -1,44 +1,76 @@
-import os
 import json
-import random
+import os
 
-def run_automation():
-    print("🤖 스마트세이버 자동화 로봇이 실행되었습니다!")
-    
-    # 1. 기존 products.json 불러오기
-    json_file = 'products.json'
-    if os.path.exists(json_file):
-        with open(json_file, 'r', encoding='utf-8') as f:
-            products = json.load(f)
+PRODUCTS_FILE = 'products.json'
+
+# 로봇이 순차적으로 꺼내 쓸 자동화 상품 및 실제 고화질 이미지 데이터베이스
+AUTO_CATALOG = [
+    {
+        "title": "물 튀김 방지 360도 회전 코브라 수전 헤드",
+        "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
+        "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300&auto=format&fit=crop&q=80"
+    },
+    {
+        "title": "씽크대 거름망 자동 압축기",
+        "link": "https://www.coupang.com/np/search?q=싱크대+거름망",
+        "image": "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&auto=format&fit=crop&q=80"
+    },
+    {
+        "title": "자석식 공중부양 무타공 양치컵 홀더 세트",
+        "link": "https://www.coupang.com/np/search?q=자석+양치컵",
+        "image": "https://images.unsplash.com/photo-1620626011761-996317b8d101?w=300&auto=format&fit=crop&q=80"
+    },
+    {
+        "title": "원터치 실리콘 자동 밀폐 쌀통 10kg",
+        "link": "https://www.coupang.com/np/search?q=밀폐+쌀통",
+        "image": "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&auto=format&fit=crop&q=80"
+    },
+    {
+        "title": "초강력 틈새 먼지제거 정전기 청소포 막대걸레",
+        "link": "https://www.coupang.com/np/search?q=틈새+먼지떨이",
+        "image": "https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&auto=format&fit=crop&q=80"
+    },
+    {
+        "title": "다용도 회전식 주방 양념통 정리대 선반",
+        "link": "https://www.coupang.com/np/search?q=회전식+양념통+선반",
+        "image": "https://images.unsplash.com/photo-1590794056226-79ef3a8147e1?w=300&auto=format&fit=crop&q=80"
+    }
+]
+
+def update_catalog():
+    if os.path.exists(PRODUCTS_FILE):
+        with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
+            try:
+                products = json.load(f)
+            except json.JSONDecodeError:
+                products = []
     else:
         products = []
 
-    # 2. 새로운 상품 번호 및 데이터 생성 (A/B 테스트 하이브리드 로직)
-    new_id = len(products) + 1
-    
-    # 예시 신규 상품 데이터 (실제 구동 시 쿠팡/샤오홍슈 API 결과로 대체됨)
-    sample_items = [
-        {"title": "순간 흡수 규조흙 발매트 꿀템", "url": "https://link.coupang.com/a/example2"},
-        {"title": "자석 밀대 창문 청소기", "url": "https://link.coupang.com/a/example3"},
-        {"title": "씽크대 거름망 자동 압축기", "url": "https://link.coupang.com/a/example4"}
-    ]
-    
-    selected_item = random.choice(sample_items)
-    
+    # 1. 기존 상품 중 회색 박스(빈 이미지)로 되어 있는 항목을 실제 사진으로 자동 교체
+    for p in products:
+        idx = p.get("id", 1) - 1
+        if not p.get("image") or "placeholder" in p.get("image", "") or "150" in p.get("image", ""):
+            p["image"] = AUTO_CATALOG[idx % len(AUTO_CATALOG)]["image"]
+
+    # 2. 다음 순번 신규 상품 및 이미지 자동 추가
+    next_id = max([p.get("id", 0) for p in products], default=0) + 1
+    template = AUTO_CATALOG[(next_id - 1) % len(AUTO_CATALOG)]
+
     new_product = {
-        "id": new_id,
-        "title": selected_item["title"],
-        "thumbnail": "https://via.placeholder.com/150",
-        "coupang_url": selected_item["url"]
+        "id": next_id,
+        "title": template["title"],
+        "link": template["link"],
+        "image": template["image"]
     }
 
-    # 3. products.json 맨 앞에 새 상품 추가 (인포크링크 페이지 실시간 반영)
+    # 최신 번호가 맨 위에 오도록 추가
     products.insert(0, new_product)
 
-    with open(json_file, 'w', encoding='utf-8') as f:
-        json.dump(products, f, ensure_ascii=False, indent=4)
-        
-    print(f"✨ [NO.{new_id}] '{selected_item['title']}' 상품이 인포크링크 카탈로그에 자동 등록되었습니다!")
+    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(products, f, ensure_ascii=False, indent=2)
+
+    print(f"✅ [NO.{next_id}] {new_product['title']} (실제 이미지 포함) 자동 업데이트 완료!")
 
 if __name__ == "__main__":
-    run_automation()
+    update_catalog()
