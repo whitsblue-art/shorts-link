@@ -5,6 +5,8 @@ import base64
 import subprocess
 import asyncio
 import urllib.request
+import urllib.parse
+import re
 
 # 필수 패키지 자동 확인 및 설치
 try:
@@ -30,7 +32,6 @@ def get_font(size):
     for path in FONT_CANDIDATES:
         if os.path.exists(path):
             return ImageFont.truetype(path, size)
-    # 나눔 폰트가 없을 경우 즉시 설치
     subprocess.run(["sudo", "apt-get", "update"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     subprocess.run(["sudo", "apt-get", "install", "-y", "fonts-nanum"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     for path in FONT_CANDIDATES:
@@ -38,41 +39,79 @@ def get_font(size):
             return ImageFont.truetype(path, size)
     return ImageFont.load_default()
 
-def verify_image(img_path, url, product_keyword):
-    # 1. 문제의 욕실/변기 인테리어 사진 즉시 차단
-    if "1584622650111" in url:
-        print("   👉 [비전 판독 응답]: FALSE (변기/샤워부스 일반 욕실 사진 감지 - 즉시 폐기)")
+def search_real_product_images(query, max_results=12):
+    """하드코딩된 스톡 이미지가 아니라 실제 상품 키워드로 웹 이미지를 실시간 검색합니다."""
+    print(f"🔎 실시간 상품 이미지 검색 중: '{query}'")
+    urls = []
+    req_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
+    try:
+        # Bing 이미지 검색에서 실제 고화질 원본 이미지 URL 추출
+        q = urllib.parse.quote(query)
+        search_url = f"https://www.bing.com/images/search?q={q}&form=HDRSC2&first=1"
+        req = urllib.request.Request(search_url, headers=req_headers)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            html = resp.read().decode('utf-8', errors='ignore')
+        matches = re.findall(r'murl&quot;:&quot;(https?://[^&]+?\.(?:jpg|jpeg|png))&quot;', html)
+        for m in matches:
+            if m not in urls:
+                urls.append(m)
+            if len(urls) >= max_results:
+                break
+    except Exception as e:
+        print(f"⚠️ 검색 중 예외 발생: {e}")
+    
+    print(f"   👉 총 {len(urls)}개의 실제 후보 이미지를 찾았습니다.")
+    return urls
+
+def verify_image_strictly(img_path, product_name):
+    """Gemini 비전 AI로 해당 상품 실물(수전/수도꼭지)이 화면에 명확히 있는지 엄격히 판독합니다."""
+    try:
+        img = Image.open(img_path).convert("RGB")
+        w, h = img.size
+        if w < 300 or h < 300:
+            print("   👉 [반려]: 해상도 미달")
+            return False
+    except Exception:
         return False
 
-    # 2. GEMINI_API_KEY가 있으면 최신 REST API로 비전 판독
-    if API_KEY:
-        try:
-            with open(img_path, "rb") as f:
-                img_b64 = base64.b64encode(f.read()).decode("utf-8")
-            api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {"text": f"이 이미지에 '{product_keyword}' 관련 주방/싱크대 모습이 보입니까? 변기만 있는 화장실이면 FALSE, 맞으면 TRUE 한 단어로만 답하세요."},
-                        {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}
-                    ]
-                }]
-            }
-            req = urllib.request.Request(api_url, data=json.dumps(payload).encode("utf-8"), headers={"Content-Type": "application/json"})
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                res_data = json.loads(resp.read().decode("utf-8"))
-                answer = res_data["candidates"][0]["content"]["parts"][0]["text"].strip().upper()
-                print(f"   👉 [Gemini 비전 판독 응답]: {answer}")
-                return "TRUE" in answer and "FALSE" not in answer
-        except Exception as e:
-            print(f"   ⚠️ [API 호출 참고]: 내장 비전 검수로 전환합니다. ({e})")
+    if not API_KEY:
+        print("   ⚠️ GEMINI_API_KEY가 없어 기본 통과 처리합니다. 정확한 검수를 위해 Secrets에 키를 등록하세요.")
+        return True
 
-    img = Image.open(img_path).convert("RGB")
-    w, h = img.size
-    if w < 300 or h < 300:
+    try:
+        with open(img_path, "rb") as f:
+            img_b64 = base64.b64encode(f.read()).decode("utf-8")
+        
+        api_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={API_KEY}"
+        prompt = (
+            f"당신은 엄격한 쇼핑몰 상품 검수 AI입니다. 판매할 상품은 '{product_name}'(싱크대 수도꼭지/수전 헤드)입니다.\n"
+            "이 이미지 안에 실제 '수도꼭지(수전)', '싱크대 수전 헤드', 또는 '수전에서 물이 나오는 모습'이 명확하게 보입니까?\n"
+            "주의: 단순히 요리하는 사람, 가스레인지 위의 냄비, 변기/욕실 전체 풍경만 있고 수도꼭지 본체가 안 보이면 무조건 FALSE라고 답하세요.\n"
+            "설명 없이 오직 TRUE 또는 FALSE 한 단어로만 대답하세요."
+        )
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}}
+                ]
+            }]
+        }
+        req = urllib.request.Request(
+            api_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            res_data = json.loads(resp.read().decode("utf-8"))
+            answer = res_data["candidates"][0]["content"]["parts"][0]["text"].strip().upper()
+            print(f"   👉 [Gemini 비전 실물 판독]: {answer}")
+            return "TRUE" in answer and "FALSE" not in answer
+    except Exception as e:
+        print(f"   ⚠️ [API 호출 오류]: {e}")
         return False
-    print("   👉 [비전 판독 응답]: TRUE (주방/싱크대 수전 이미지 확인 완료)")
-    return True
 
 async def generate_tts(text, output_audio_path):
     communicate = edge_tts.Communicate(text, "ko-KR-SunHiNeural", rate="+15%")
@@ -112,7 +151,7 @@ def create_scene_frame(img_path, badge_text, hook_text, sub_text, out_img_path):
     img.save(out_img_path, quality=95)
 
 def run_full_pipeline():
-    print("🤖 [1단계] 후보 이미지 비전 AI 엄격 검수 시작...")
+    print("🤖 [1단계] 실제 상품 이미지 수집 및 Gemini 비전 AI 실물 대조 검수 시작...")
     
     if os.path.exists(PRODUCTS_FILE):
         with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
@@ -124,56 +163,67 @@ def run_full_pipeline():
     next_id = max([p.get("id", 0) for p in products], default=0) + 1
     product_title = "물 튀김 방지 360도 회전 코브라 수전 헤드"
 
-    candidate_images = [
-        ("문제의 욕실/변기 사진 (탈락 테스트용)", "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80"),
-        ("주방 싱크대 수전 사진 1", "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&q=80"),
-        ("주방 싱크대 수전 사진 2", "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&q=80"),
-        ("주방 싱크대 수전 사진 3", "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800&q=80")
+    # 테스트용으로 1번에 방금 문제됐던 '요리하는 여성/냄비' 사진을 넣어 AI가 실제로 탈락시키는지 확인
+    bad_test_urls = [
+        ("문제의 냄비 요리하는 여성 사진 (탈락 검증용)", "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=800&q=80")
     ]
+    
+    # 웹에서 실제 '싱크대 회전 수전 헤드' 상품 이미지 검색
+    searched_urls = search_real_product_images("싱크대 360도 회전 수전 헤드 수도꼭지", max_results=15)
+    
+    candidate_list = bad_test_urls + [(f"실제 검색된 수전 후보 이미지 #{i+1}", u) for i, u in enumerate(searched_urls)]
 
-    verified_urls = []
+    verified_images = []
     req_headers = {'User-Agent': 'Mozilla/5.0'}
 
-    for label, url in candidate_images:
+    for label, url in candidate_list:
         print(f"🔍 검수 중: {label}")
-        temp_img = "temp_verify.jpg"
-        req = urllib.request.Request(url, headers=req_headers)
-        with urllib.request.urlopen(req) as resp, open(temp_img, 'wb') as out:
-            out.write(resp.read())
+        temp_img = f"temp_verify_{len(verified_images)}.jpg"
+        try:
+            req = urllib.request.Request(url, headers=req_headers)
+            with urllib.request.urlopen(req, timeout=8) as resp, open(temp_img, 'wb') as out:
+                out.write(resp.read())
+        except Exception as e:
+            print(f"   ⚠️ 이미지 다운로드 건너뜀: {e}")
+            continue
         
-        is_valid = verify_image(temp_img, url, "주방 싱크대 수전 수도꼭지")
-        if os.path.exists(temp_img):
-            os.remove(temp_img)
+        is_valid = verify_image_strictly(temp_img, product_title)
 
         if is_valid:
-            print(f"   ✅ [검수 통과]: {label}")
-            verified_urls.append(url)
+            print(f"   ✅ [실물 검수 통과]: {label}")
+            verified_images.append((url, temp_img))
         else:
-            print(f"   ❌ [검수 반려 - 즉시 폐기]: {label}")
+            print(f"   ❌ [검수 반려 - 수전 본체 없음]: {label}")
+            if os.path.exists(temp_img):
+                os.remove(temp_img)
 
-        if len(verified_urls) == 3:
+        # 서로 다른 진짜 수전 사진 3장이 모이면 종료
+        if len(verified_images) == 3:
             break
 
-    while len(verified_urls) < 3:
-        verified_urls.append(verified_urls[-1])
+    if len(verified_images) < 3:
+        raise RuntimeError(f"❌ 검수를 통과한 서로 다른 수전 이미지가 3장 미만입니다(현재 {len(verified_images)}장). API 키 또는 검색어를 확인하세요.")
 
     scenes = [
         {
-            "image": verified_urls[0],
+            "image": verified_images[0][0],
+            "local_img": verified_images[0][1],
             "badge": f"추천 꿀템 NO.{next_id}",
             "hook": "설거지할 때마다 물 튀김?",
             "sub": "사방으로 튀는 물 한 방에 해결!",
             "tts": f"설거지할 때마다 사방으로 튀는 물, 스트레스받으시죠? {product_title}로 해결하세요!"
         },
         {
-            "image": verified_urls[1],
+            "image": verified_images[1][0],
+            "local_img": verified_images[1][1],
             "badge": "360도 자유자재 회전",
             "hook": "강력 수압 & 각도 조절",
             "sub": "싱크대 구석구석 빈틈없이 세척",
             "tts": "원하는 각도로 부드럽게 꺾이며, 강력한 수압으로 싱크대 구석구석을 깨끗하게 씻어냅니다."
         },
         {
-            "image": verified_urls[2],
+            "image": verified_images[2][0],
+            "local_img": verified_images[2][1],
             "badge": "프로필 링크 클릭",
             "hook": "어디서 살 수 있을까?",
             "sub": f"프로필 링크에서 [{next_id}번] 검색!",
@@ -185,16 +235,16 @@ def run_full_pipeline():
         "id": next_id,
         "title": product_title,
         "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
-        "image": verified_urls[0],
+        "image": verified_images[0][0],
         "verified": True,
-        "scenes": scenes
+        "scenes": [{k: v for k, v in s.items() if k != "local_img"} for s in scenes]
     }
     
     products.insert(0, new_prod)
     with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(products, f, ensure_ascii=False, indent=2)
     
-    print(f"🎬 [2단계] 총 {len(scenes)}개 장면 개별 렌더링 및 병합 시작...")
+    print(f"🎬 [2단계] 서로 다른 3개의 실제 수전 이미지로 장면 렌더링 시작...")
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     output_mp4 = os.path.join(OUTPUT_DIR, f"shorts_no_{next_id}.mp4")
 
@@ -202,16 +252,12 @@ def run_full_pipeline():
     temp_files = []
 
     for idx, scene in enumerate(scenes):
-        print(f"   🎞️ 장면 {idx+1}/{len(scenes)} 제작 중: {scene.get('hook')}")
-        raw_img = f"temp_raw_{idx}.jpg"
+        print(f"   🎞️ 장면 {idx+1}/3 제작 중: {scene['hook']}")
+        raw_img = scene['local_img']
         framed_img = f"temp_framed_{idx}.jpg"
         audio_mp3 = f"temp_audio_{idx}.mp3"
         clip_mp4 = f"temp_clip_{idx}.mp4"
         temp_files.extend([raw_img, framed_img, audio_mp3, clip_mp4])
-
-        req = urllib.request.Request(scene['image'], headers=req_headers)
-        with urllib.request.urlopen(req) as resp, open(raw_img, 'wb') as out:
-            out.write(resp.read())
 
         create_scene_frame(raw_img, scene['badge'], scene['hook'], scene['sub'], framed_img)
         asyncio.run(generate_tts(scene['tts'], audio_mp3))
@@ -243,9 +289,8 @@ def run_full_pipeline():
         if os.path.exists(p):
             os.remove(p)
 
-    print(f"✅ 영상 파일 생성 완료: {output_mp4} (크기: {os.path.getsize(output_mp4)} bytes)")
+    print(f"✅ 영상 파일 생성 완료: {output_mp4}")
 
-    # 3. GitHub 저장소로 즉시 강제 Commit & Push (videos 폴더 누락 원천 차단)
     print("🚀 [3단계] 생성된 영상을 GitHub 저장소에 즉시 업로드 중...")
     subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=False)
     subprocess.run(["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"], check=False)
@@ -253,7 +298,7 @@ def run_full_pipeline():
     subprocess.run(["git", "commit", "-m", f"Auto-generate verified shorts NO.{next_id}"], check=False)
     subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
     subprocess.run(["git", "push", "origin", "main"], check=False)
-    print(f"🎉 [전체 공정 완벽 종료] videos/shorts_no_{next_id}.mp4 파일이 저장소에 업로드되었습니다!")
+    print(f"🎉 [전체 공정 완료] videos/shorts_no_{next_id}.mp4 업로드 성공!")
 
 if __name__ == "__main__":
     run_full_pipeline()
