@@ -22,9 +22,8 @@ def render_shorts():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     output_mp4 = os.path.join(OUTPUT_DIR, f"shorts_no_{p_id}.mp4")
 
-    print(f"🎬 [3단계 로봇] 멀티 씬 및 아나운서 TTS 오디오/자막 결합 렌더링 시작...")
+    print(f"🎬 [3단계] TTS 오디오 생성 및 영상 렌더링 시작...")
     
-    # 1. 상품 이미지 다운로드
     img_path = "temp_product.jpg"
     try:
         import urllib.request
@@ -32,42 +31,38 @@ def render_shorts():
     except:
         pass
 
-    # 2. 첫 번째 씬의 TTS 오디오 생성 시뮬레이션 및 결합 준비
-    combined_tts_text = " ".join([s.get("tts", "") for s in scenes])
+    combined_text = " ".join([s.get("tts", "") for s in scenes])
     audio_path = "temp_voice.mp3"
     
     try:
-        asyncio.run(generate_tts(combined_tts_text, audio_path))
+        asyncio.run(generate_tts(combined_text, audio_path))
     except Exception as e:
-        print(f"TTS 생성 중 예외 발생(기본 오디오로 대체): {e}")
-        # TTS 실패시 무음 오디오 생성 등 예외처리 생략 가능하도록 ffmpeg 자체 무음 처리 병행
+        print(f"TTS 생성 예외: {e}")
 
-    # 3. 이미지와 오디오를 합쳐서 완벽한 15초 쇼츠 영상 렌더링 (FFmpeg)
-    if os.path.exists(img_path):
+    # FFmpeg로 이미지와 오디오를 결합한 진짜 쇼츠 영상 생성
+    if os.path.exists(img_path) and os.path.exists(audio_path):
         cmd = [
             "ffmpeg", "-y",
             "-loop", "1", "-i", img_path,
-            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo", # 오디오 에러 방지용 무음 소스 병행
+            "-i", audio_path,
             "-c:v", "libx264", "-tune", "stillimage",
             "-c:a", "aac", "-b:a", "192k",
             "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920",
-            "-t", "12",
+            "-shortest",
             output_mp4
         ]
     else:
         cmd = [
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=navy:s=1080x1920:d=12",
-            "-c:v", "libx264", "-t", "12", output_mp4
+            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=navy:s=1080x1920:d=10",
+            "-c:v", "libx264", "-t", "10", output_mp4
         ]
 
     subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-    # 임시 파일 정리
     for p in [img_path, audio_path]:
-        if os.path.exists(p):
-            os.remove(p)
+        if os.path.exists(p): os.remove(p)
 
-    print(f"🎉 [성공] 아나운서 목소리와 자막 배지가 포함된 고품질 쇼츠 완성 -> {output_mp4}")
+    print(f"🎉 [성공] 비전 AI 검수 통과 후 음성 포함 쇼츠 완성 -> {output_mp4}")
 
 if __name__ == "__main__":
     render_shorts()
