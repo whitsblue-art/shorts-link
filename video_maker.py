@@ -1,83 +1,144 @@
-import json, os, subprocess, asyncio
+import json, os, subprocess, asyncio, urllib.request
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 PRODUCTS_FILE = 'products.json'
 OUTPUT_DIR = 'videos'
-FONT_PATH = '/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf'
+
+FONT_CANDIDATES = [
+    '/usr/share/fonts/truetype/nanum/NanumSquareRoundEB.ttf',
+    '/usr/share/fonts/truetype/nanum/NanumSquareRoundB.ttf',
+    '/usr/share/fonts/truetype/nanum/NanumGothicBold.ttf',
+    '/usr/share/fonts/truetype/nanum/NanumGothic.ttf'
+]
+
+def get_font(size):
+    for path in FONT_CANDIDATES:
+        if os.path.exists(path):
+            return ImageFont.truetype(path, size)
+    return ImageFont.load_default()
 
 async def generate_tts(text, output_audio_path):
     import edge_tts
     communicate = edge_tts.Communicate(text, "ko-KR-SunHiNeural", rate="+15%")
     await communicate.save(output_audio_path)
 
+def create_scene_frame(img_path, badge_text, hook_text, sub_text, out_img_path):
+    img = Image.open(img_path).convert("RGB")
+    img = ImageOps.fit(img, (1080, 1920), method=Image.Resampling.LANCZOS)
+    draw = ImageDraw.Draw(img, "RGBA")
+
+    font_badge = get_font(48)
+    font_hook = get_font(68)
+    font_sub = get_font(54)
+
+    # 1. 상단 노란색 배지 박스
+    bbox_b = draw.textbbox((0, 0), badge_text, font=font_badge)
+    bw, bh = bbox_b[2] - bbox_b[0], bbox_b[3] - bbox_b[1]
+    bx = (1080 - bw) // 2
+    by = 180
+    draw.rounded_rectangle([bx - 30, by - 15, bx + bw + 30, by + bh + 20], radius=20, fill=(255, 215, 0, 240))
+    draw.text((bx, by), badge_text, font=font_badge, fill=(0, 0, 0, 255))
+
+    # 2. 상단 메인 후킹 자막 박스
+    bbox_h = draw.textbbox((0, 0), hook_text, font=font_hook)
+    hw, hh = bbox_h[2] - bbox_h[0], bbox_h[3] - bbox_h[1]
+    hx = (1080 - hw) // 2
+    hy = 290
+    draw.rounded_rectangle([hx - 35, hy - 20, hx + hw + 35, hy + hh + 25], radius=20, fill=(0, 0, 0, 200))
+    draw.text((hx, hy), hook_text, font=font_hook, fill=(255, 255, 255, 255))
+
+    # 3. 하단 보조 설명 자막 박스
+    if sub_text:
+        bbox_s = draw.textbbox((0, 0), sub_text, font=font_sub)
+        sw, sh = bbox_s[2] - bbox_s[0], bbox_s[3] - bbox_s[1]
+        sx = (1080 - sw) // 2
+        sy = 1520
+        draw.rounded_rectangle([sx - 35, sy - 20, sx + sw + 35, sy + sh + 25], radius=20, fill=(0, 0, 0, 210))
+        draw.text((sx, sy), sub_text, font=font_sub, fill=(0, 255, 200, 255))
+
+    img.save(out_img_path, quality=95)
+
 def render_shorts():
-    if not os.path.exists(PRODUCTS_FILE): return
+    if not os.path.exists(PRODUCTS_FILE):
+        raise RuntimeError("products.json 파일이 없습니다.")
     with open(PRODUCTS_FILE, 'r', encoding='utf-8') as f:
         products = json.load(f)
-    if not products: return
+    if not products:
+        raise RuntimeError("상품 데이터가 비어 있습니다.")
 
     latest = products[0]
     p_id = latest.get('id', 1)
-    image_url = latest.get('image', '')
     scenes = latest.get('scenes', [])
 
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     output_mp4 = os.path.join(OUTPUT_DIR, f"shorts_no_{p_id}.mp4")
 
-    print(f"🎬 [3단계] 자막 오버레이 및 TTS 오디오 결합 렌더링 시작...")
-    
-    img_path = "temp_product.jpg"
-    try:
-        import urllib.request
-        urllib.request.urlretrieve(image_url, img_path)
-    except:
-        pass
+    print(f"🎬 [2단계] 총 {len(scenes)}개 장면 개별 렌더링 및 병합 시작...")
 
-    combined_text = " ".join([s.get("tts", "") for s in scenes])
-    hook_text = scenes[0].get("hook", "추천 꿀템") if scenes else "추천 꿀템"
-    badge_text = scenes[0].get("badge", f"NO.{p_id}") if scenes else f"NO.{p_id}"
-    
-    audio_path = "temp_voice.mp3"
-    try:
-        asyncio.run(generate_tts(combined_text, audio_path))
-    except Exception as e:
-        print(f"TTS 생성 예외: {e}")
+    scene_clips = []
+    temp_files = []
+    req_headers = {'User-Agent': 'Mozilla/5.0'}
 
-    # 폰트 파일 존재 여부 확인 및 FFmpeg 자막(drawtext) 필터 적용
-    font_arg = FONT_PATH if os.path.exists(FONT_PATH) else ""
-    
-    if os.path.exists(img_path) and os.path.exists(audio_path):
-        if font_arg:
-            # 폰트가 있을 경우 화면 상단에 후킹 자막과 배지 텍스트를 직접 그려넣음
-            vf_filter = (
-                f"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,"
-                f"drawtext=fontfile='{font_arg}':text='{badge_text}':fontcolor=yellow:fontsize=50:x=(w-text_w)/2:y=200:box=1:boxcolor=black@0.6:boxborderw=10,"
-                f"drawtext=fontfile='{font_arg}':text='{hook_text}':fontcolor=white:fontsize=65:x=(w-text_w)/2:y=300:box=1:boxcolor=black@0.6:boxborderw=12"
-            )
-        else:
-            vf_filter = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
+    for idx, scene in enumerate(scenes):
+        print(f"   🎞️ 장면 {idx+1}/{len(scenes)} 제작 중: {scene.get('hook')}")
+        raw_img = f"temp_raw_{idx}.jpg"
+        framed_img = f"temp_framed_{idx}.jpg"
+        audio_mp3 = f"temp_audio_{idx}.mp3"
+        clip_mp4 = f"temp_clip_{idx}.mp4"
+        temp_files.extend([raw_img, framed_img, audio_mp3, clip_mp4])
 
+        # 장면별 이미지 다운로드
+        img_url = scene.get('image')
+        req = urllib.request.Request(img_url, headers=req_headers)
+        with urllib.request.urlopen(req) as resp, open(raw_img, 'wb') as out:
+            out.write(resp.read())
+
+        # 이미지 위에 상/하단 자막 및 배지 디자인 합성
+        create_scene_frame(
+            raw_img,
+            scene.get('badge', f'NO.{p_id}'),
+            scene.get('hook', ''),
+            scene.get('sub', ''),
+            framed_img
+        )
+
+        # 장면별 아나운서 TTS 생성
+        asyncio.run(generate_tts(scene.get('tts', ''), audio_mp3))
+
+        # 장면별 비디오 클립 생성 (미세한 줌인 애니메이션 추가로 동적인 느낌 부여)
         cmd = [
             "ffmpeg", "-y",
-            "-loop", "1", "-i", img_path,
-            "-i", audio_path,
-            "-c:v", "libx264", "-tune", "stillimage",
+            "-loop", "1", "-framerate", "30", "-i", framed_img,
+            "-i", audio_mp3,
+            "-vf", "scale=1200:2133,zoompan=z='min(zoom+0.0005,1.15)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=1:s=1080x1920:fps=30,format=yuv420p",
+            "-c:v", "libx264", "-preset", "fast",
             "-c:a", "aac", "-b:a", "192k",
-            "-vf", vf_filter,
             "-shortest",
-            output_mp4
+            clip_mp4
         ]
-    else:
-        cmd = [
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=navy:s=1080x1920:d=10",
-            "-c:v", "libx264", "-t", "10", output_mp4
-        ]
+        subprocess.run(cmd, check=True)
+        scene_clips.append(clip_mp4)
 
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # 3개 장면 클립을 하나의 쇼츠 영상으로 이어붙이기
+    concat_txt = "concat_list.txt"
+    temp_files.append(concat_txt)
+    with open(concat_txt, "w", encoding="utf-8") as f:
+        for clip in scene_clips:
+            f.write(f"file '{clip}'\n")
 
-    for p in [img_path, audio_path]:
-        if os.path.exists(p): os.remove(p)
+    concat_cmd = [
+        "ffmpeg", "-y",
+        "-f", "concat", "-safe", "0", "-i", concat_txt,
+        "-c", "copy",
+        output_mp4
+    ]
+    subprocess.run(concat_cmd, check=True)
 
-    print(f"🎉 [성공] 비전 AI 검수 및 자막·음성 포함 쇼츠 완성 -> {output_mp4}")
+    for p in temp_files:
+        if os.path.exists(p):
+            os.remove(p)
+
+    print(f"🎉 [완성] 3개 장면 전환 + 상/하단 자막 + TTS 결합 쇼츠 생성 완료 -> {output_mp4}")
 
 if __name__ == "__main__":
     render_shorts()
