@@ -205,4 +205,109 @@ def run_full_pipeline():
         else:
             print(f"   ❌ [검수 반려 - REJECT (즉시 폐기)]: {label}")
             if os.path.exists(temp_img):
-                os.remove(temp_)
+                os.remove(temp_img)
+
+        if len(verified_images) == 3:
+            break
+
+    if len(verified_images) < 3:
+        raise RuntimeError(f"❌ 검수를 통과한 수전 이미지가 3장 미만입니다(현재 {len(verified_images)}장).")
+
+    scenes = [
+        {
+            "image": verified_images[0][0],
+            "local_img": verified_images[0][1],
+            "badge": f"추천 꿀템 NO.{next_id}",
+            "hook": "설거지할 때마다 물 튀김?",
+            "sub": "사방으로 튀는 물 한 방에 해결!",
+            "tts": f"설거지할 때마다 사방으로 튀는 물, 스트레스받으시죠? {product_title}로 해결하세요!"
+        },
+        {
+            "image": verified_images[1][0],
+            "local_img": verified_images[1][1],
+            "badge": "360도 자유자재 회전",
+            "hook": "강력 수압 & 각도 조절",
+            "sub": "싱크대 구석구석 빈틈없이 세척",
+            "tts": "원하는 각도로 부드럽게 꺾이며, 강력한 수압으로 싱크대 구석구석을 깨끗하게 씻어냅니다."
+        },
+        {
+            "image": verified_images[2][0],
+            "local_img": verified_images[2][1],
+            "badge": "프로필 링크 클릭",
+            "hook": "어디서 살 수 있을까?",
+            "sub": f"프로필 링크에서 [{next_id}번] 검색!",
+            "tts": f"지금 바로 프로필 링크에서 {next_id}번을 검색해 최저가로 만나보세요!"
+        }
+    ]
+
+    new_prod = {
+        "id": next_id,
+        "title": product_title,
+        "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
+        "image": verified_images[0][0],
+        "verified": True,
+        "scenes": [{k: v for k, v in s.items() if k != "local_img"} for s in scenes]
+    }
+    
+    products.insert(0, new_prod)
+    with open(PRODUCTS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(products, f, ensure_ascii=False, indent=2)
+    
+    print(f"🎬 [2단계] 서로 다른 3개의 실제 수전 이미지로 장면 렌더링 시작...")
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    output_mp4 = os.path.join(OUTPUT_DIR, f"shorts_no_{next_id}.mp4")
+
+    scene_clips = []
+    temp_files = []
+
+    for idx, scene in enumerate(scenes):
+        print(f"   🎞️ 장면 {idx+1}/3 제작 중: {scene['hook']}")
+        raw_img = scene['local_img']
+        framed_img = f"temp_framed_{idx}.jpg"
+        audio_mp3 = f"temp_audio_{idx}.mp3"
+        clip_mp4 = f"temp_clip_{idx}.mp4"
+        temp_files.extend([raw_img, framed_img, audio_mp3, clip_mp4])
+
+        create_scene_frame(raw_img, scene['badge'], scene['hook'], scene['sub'], framed_img)
+        asyncio.run(generate_tts(scene['tts'], audio_mp3))
+
+        cmd = [
+            "ffmpeg", "-y",
+            "-loop", "1", "-framerate", "30", "-i", framed_img,
+            "-i", audio_mp3,
+            "-vf", "scale=1080:1920,format=yuv420p",
+            "-c:v", "libx264", "-preset", "ultrafast", "-tune", "stillimage",
+            "-c:a", "aac", "-b:a", "192k",
+            "-shortest",
+            clip_mp4
+        ]
+        subprocess.run(cmd, check=True)
+        scene_clips.append(clip_mp4)
+
+    concat_txt = "concat_list.txt"
+    temp_files.append(concat_txt)
+    with open(concat_txt, "w", encoding="utf-8") as f:
+        for clip in scene_clips:
+            f.write(f"file '{clip}'\n")
+
+    subprocess.run([
+        "ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", concat_txt, "-c", "copy", output_mp4
+    ], check=True)
+
+    for p in temp_files:
+        if os.path.exists(p):
+            os.remove(p)
+
+    print(f"✅ 영상 파일 생성 완료: {output_mp4}")
+
+    print("🚀 [3단계] 생성된 영상을 GitHub 저장소에 즉시 업로드 중...")
+    subprocess.run(["git", "config", "user.name", "github-actions[bot]"], check=False)
+    subprocess.run(["git", "config", "user.email", "github-actions[bot]@users.noreply.github.com"], check=False)
+    subprocess.run(["git", "add", "-f", PRODUCTS_FILE, output_mp4], check=False)
+    subprocess.run(["git", "commit", "-m", f"Auto-generate verified shorts NO.{next_id}"], check=False)
+    subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=False)
+    subprocess.run(["git", "push", "origin", "main"], check=False)
+    print(f"🎉 [전체 공정 완료] videos/shorts_no_{next_id}.mp4 업로드 성공!")
+
+if __name__ == "__main__":
+    run_full_pipeline()
