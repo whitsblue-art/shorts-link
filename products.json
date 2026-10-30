@@ -1,5 +1,40 @@
 [
   {
+    "id": 7,
+    "title": "물 튀김 방지 360도 회전 코브라 수전 헤드",
+    "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
+    "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80",
+    "verified": true,
+    "scenes": [
+      {
+        "top_hook": "설거지할 때 물 튀김?",
+        "badge": "추천 꿀템 NO.7",
+        "sub": "바꾸기만 하면 끝나요!",
+        "tts": "설거지할 때마다 사방으로 튀는 물, 스트레스받으시죠? 물 튀김 방지 360도 회전 코브라 수전 헤드로 해결하세요!",
+        "type": "image"
+      },
+      {
+        "top_hook": "어떻게 작동할까?",
+        "badge": "360도 자유자재 회전",
+        "sub": "구석구석 빈틈없이 세척",
+        "tts": "360도 회전 코브라 수전 헤드는 원하는 각도로 자유롭게 꺾이며 강력한 수압을 자랑합니다.",
+        "type": "spec",
+        "specs": [
+          "설치 시간 10초! 공구 없이 손으로 OK",
+          "녹물 제거 필터 기본 내장",
+          "주방 및 욕실 세면대 완벽 호환"
+        ]
+      },
+      {
+        "top_hook": "어디서 살 수 있을까?",
+        "badge": "프로필 링크 클릭",
+        "sub": "[7번]을 검색하세요!",
+        "tts": "지금 바로 프로필 링크에서 7번을 검색해 최저가로 만나보세요!",
+        "type": "cta"
+      }
+    ]
+  },
+  {
     "id": 6,
     "title": "씽크대 거름망 자동 압축기",
     "link": "https://www.coupang.com/np/search?q=싱크대+거름망",
