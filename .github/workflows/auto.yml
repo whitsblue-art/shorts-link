@@ -1,4 +1,4 @@
-name: Auto Shop-the-Look Runner
+name: Zero-Click Shopper Bot
 
 on:
   schedule:
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  run-bot:
+  run-pipeline:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout repository
@@ -25,18 +25,20 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-nanum
           python3 -m pip install --upgrade pip
-          python3 -m pip install requests pillow gTTS edge-tts
+          python3 -m pip install requests pillow google-generativeai edge-tts
 
-      - name: Run Automation Scripts
+      - name: Run Vision Verification & Video Maker
         run: |
           python3 main.py
           python3 video_maker.py
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
-      - name: Commit and push changes
+      - name: Commit and push results
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add products.json videos/*.mp4
-          git commit -m "🤖 자동화 로봇: 상품 및 쇼츠 영상 업데이트" || echo "No changes"
+          git commit -m "🤖 [자동화] 비전 AI 검수 및 실사용 쇼츠 제작 완료" || echo "No changes"
           git pull --rebase origin main || true
           git push
