@@ -1,5 +1,29 @@
 [
   {
+    "id": 9,
+    "title": "물 튀김 방지 360도 회전 코브라 수전 헤드",
+    "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
+    "image": "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80",
+    "verified": true,
+    "scenes": [
+      {
+        "hook": "설거지할 때마다 물 튀김?",
+        "badge": "추천 꿀템 NO.9",
+        "tts": "설거지할 때마다 사방으로 튀는 물, 스트레스받으시죠? 물 튀김 방지 360도 회전 코브라 수전 헤드로 한 방에 해결하세요!"
+      },
+      {
+        "hook": "360도 자유자재 회전",
+        "badge": "구석구석 완벽 세척",
+        "tts": "원하는 각도로 부드럽게 꺾이며, 강력한 수압으로 싱크대 구석구석을 깨끗하게 씻어냅니다."
+      },
+      {
+        "hook": "어디서 살 수 있을까?",
+        "badge": "프로필 링크 클릭",
+        "tts": "지금 바로 프로필 링크에서 9번을 검색해 최저가로 만나보세요!"
+      }
+    ]
+  },
+  {
     "id": 8,
     "title": "물 튀김 방지 360도 회전 코브라 수전 헤드",
     "link": "https://www.coupang.com/np/search?q=코브라+수전+헤드",
