@@ -205,4 +205,4 @@ def run_full_pipeline():
         else:
             print(f"   ❌ [검수 반려 - REJECT (즉시 폐기)]: {label}")
             if os.path.exists(temp_img):
-                os.remove(temp_
+                os.remove(temp_)
