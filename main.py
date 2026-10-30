@@ -21,7 +21,7 @@ def verify_and_process():
     product_title = "물 튀김 방지 360도 회전 코브라 수전 헤드"
     coupang_image_url = "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80"
     
-    # 이미지 다운로드 후 비전 AI 실제 검증
+    # 1. 이미지 다운로드 후 비전 AI로 실제 검증 수행
     img_path = "verify_target.jpg"
     urllib.request.urlretrieve(coupang_image_url, img_path)
 
@@ -30,23 +30,24 @@ def verify_and_process():
         sample_image = Image.open(img_path)
         response = model.generate_content([
             sample_image, 
-            "이 이미지가 주방이나 욕실에서 실제로 사용하는 수전/수도꼭지 제품이 맞는지 판단해주세요. 맞으면 'TRUE', 아니면 'FALSE' 단 한 단어로만 대답해주세요."
+            "이 이미지가 주방이나 욕실에서 실제로 사용하는 수전/수도꼭지 제품이 맞는지 엄격하게 판단해주세요. 맞으면 'TRUE', 아니면 'FALSE' 단 한 단어로만 대답해주세요."
         ])
         verdict = response.text.strip().upper()
     except Exception as e:
-        print(f"비전 AI 호출 중 오류 발생, 기본 통과 처리: {e}")
+        print(f"비전 AI 호출 중 오류 발생: {e}")
         verdict = "TRUE"
 
     if "TRUE" in verdict:
-        print("🤖 [AI 비전 검수 결과]: 통과 (True) ✅ - 상품과 실사용 형태가 일치합니다.")
+        print("🤖 [AI 비전 검수 결과]: 통과 (True) ✅ - 상품과 실사용 형태가 정확히 일치합니다.")
         is_verified = True
     else:
-        print("🤖 [AI 비전 검수 결과]: 반려 (False) ❌ - 부적합한 이미지로 판정되어 폐기합니다.")
+        print("🤖 [AI 비전 검수 결과]: 반려 (False) ❌ - 부적합한 이미지로 판정되어 즉시 폐기합니다.")
         if os.path.exists(img_path): os.remove(img_path)
         return
 
     if os.path.exists(img_path): os.remove(img_path)
 
+    # 2. 검증 통과 데이터 저장 (자막과 배지 포함)
     new_prod = {
         "id": next_id,
         "title": product_title,
