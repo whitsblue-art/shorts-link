@@ -17,7 +17,7 @@ from shopping.coupang import authorization, normalize_product, Coupang, PREFIX
 from shopping.catalogue import make_entry, merge_products, verify_live
 from shopping.channel import resolve_channel, public_channel
 from shopping.pipeline import verified_files
-from shopping.publish import Publisher
+from shopping.publish import Publisher, connect_youtube
 from shopping.state import Ledger, validate_catalogue
 from shopping import assets, design, media, script
 
@@ -43,6 +43,18 @@ def episode():
 
 
 class ShoppingTests(unittest.TestCase):
+    def test_malformed_registered_token_rejects_without_logging_value(self):
+        for raw in ('C:/private/shopping_youtube_token.json', '{"refresh_token":"private-value"'):
+            with patch.dict(os.environ, {"SHOPPING_YOUTUBE_TOKEN_JSON": raw}):
+                with self.assertRaisesRegex(GateError, "not valid JSON") as caught:
+                    connect_youtube()
+                self.assertNotIn("private", str(caught.exception))
+
+    def test_client_download_is_not_a_channel_token(self):
+        with patch.dict(os.environ, {"SHOPPING_YOUTUBE_TOKEN_JSON": '{"installed":{"client_secret":"private-value"}}'}):
+            with self.assertRaisesRegex(GateError, "Client-secret JSON was registered") as caught:
+                connect_youtube()
+            self.assertNotIn("private-value", str(caught.exception))
     def test_repository_config_contract(self):
         root = Path(__file__).resolve().parent.parent
         config = json.loads((root / "shopping_config.json").read_text(encoding="utf-8"))
