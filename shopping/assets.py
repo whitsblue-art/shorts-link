@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from PIL import Image, ImageOps
 import requests
 
-from .ai import image_part
+from .ai import image_part, PRODUCT_IDENTITY_RULES
 from .core import GateError, AIUnavailable, ROOT, atomic_json, fingerprint, run
 from .media import image_hash, probe
 
@@ -184,13 +184,7 @@ def validate_product_media(ai, product, reference, files, source_title):
         "features are clearly visible as the main subject in ALL candidate frames. A generic faucet/kitchen "
         "is insufficient. Cooking people, pots, toilets and room interiors are REJECT even if the product "
         "appears faintly in the background. Text-confirmed different models are REJECT. Unknown identity is UNKNOWN. "
-        "Physical model/variant means the MAIN PRODUCT's hardware, color and connection type. "
-        "A package quantity or bundled replacement-filter count is not a different hardware variant. "
-        "An installed or head-only view may PASS if that exact main product is identifiable; spare filters "
-        "and packaging need not be visible in every scene. Never infer that a pictured single head includes "
-        "the full bundle: bundle contents come from the TARGET title/reference, not from the candidate. "
-        "Reject any visibly contradictory hardware, color or connector even if branding matches. "
-        "The TARGET is identity evidence, not a second candidate.\nTARGET TITLE: " + product["title"]
+        + PRODUCT_IDENTITY_RULES + "The TARGET is identity evidence, not a second candidate.\nTARGET TITLE: " + product["title"]
         + "\nCANDIDATE SOURCE TITLE: " + source_title)
     attachments = [{"text": "TARGET reference for identity only"}, image_part(reference)]
     for file in files:

@@ -15,6 +15,14 @@ from .core import GateError, AIUnavailable, atomic_json, fingerprint, normalize,
 
 PROVIDER = 'openai'
 REVIEW_VERSION = 2
+PRODUCT_IDENTITY_RULES = (
+    "Physical model/variant means the MAIN PRODUCT's hardware, color and connection type. "
+    "A package quantity or bundled replacement-filter count is not a different hardware variant. "
+    "An installed or head-only view may PASS if that exact main product is identifiable; spare filters "
+    "and packaging need not be visible in every scene or thumbnail. Never infer that a pictured single "
+    "head includes the full bundle: bundle contents come from the TARGET title/reference. "
+    "Reject visibly contradictory hardware, color or connectors even if branding matches. "
+)
 
 
 def strict_schema(schema):

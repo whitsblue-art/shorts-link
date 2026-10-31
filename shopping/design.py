@@ -3,7 +3,7 @@ import json
 import math
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageFilter, ImageEnhance
 
-from .ai import image_part
+from .ai import image_part, PRODUCT_IDENTITY_RULES
 from .core import GateError, atomic_json, fingerprint, run
 from . import media
 
@@ -118,6 +118,7 @@ def review(ai, meta, video, manifest, directory):
                 "Product must remain identifiable in the sharp central media window; ignore the decorative blurred background. "
                 "All banners and current caption fragment must be legible, within bounds and separated from the product. "
                 "Timed captions intentionally show only the CURRENT fragment, not the entire narration. "
+                + PRODUCT_IDENTITY_RULES
                 + json.dumps({"title": meta["product_title"], "scene": {k: scene[k] for k in ("badge", "hook", "sub")}, "current_caption": expected}, ensure_ascii=False),
                 ["product_identity", "legibility", "safe_bounds", "no_obscured_product"],
                 [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), {"text": "ENCODED FRAME"}, image_part(frame)])
@@ -134,7 +135,7 @@ def thumbnail(ai, meta, directory):
     path = directory / "thumbnail.jpg"
     image.save(path, quality=85)
     result = ai.judge("Check shopping thumbnail: real product matches TARGET, intended main hook is exact, "
-        "legible, uncut, and supported by product title. " + json.dumps({"hook": meta["thumbnail_text"], "product": meta["product_title"]}, ensure_ascii=False),
+        "legible, uncut, and supported by product title. " + PRODUCT_IDENTITY_RULES + json.dumps({"hook": meta["thumbnail_text"], "product": meta["product_title"]}, ensure_ascii=False),
         ["product_identity", "correct_hook", "legibility", "truthful_claims"],
         [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), {"text": "THUMBNAIL"}, image_part(path)])
     atomic_json(directory / "thumbnail_review.json", {**result, "sha256": fingerprint(path.read_bytes())})
