@@ -1,7 +1,9 @@
 {
   "version": 1,
   "channel_id": null,
-  "plans": {},
+  "plans": {
+    "41202284409": "5a3c8c9c238e594d726f37ca"
+  },
   "episodes": {
     "5a3c8c9c238e594d726f37ca": {
       "id": "5a3c8c9c238e594d726f37ca",
@@ -21,8 +23,11 @@
         "affiliate_link": "https://link.coupang.com/a/iiy862svaC"
       },
       "status": "reserved",
-      "created_at": "2026-10-31T12:43:33.963655+00:00"
+      "created_at": "2026-10-31T12:43:33.963655+00:00",
+      "artifact_run_id": "41202284409",
+      "artifact_run_attempt": "1",
+      "updated_at": "2026-10-31T12:43:35.121118+00:00"
     }
   },
-  "updated_at": "2026-10-31T12:43:33.963664+00:00"
+  "updated_at": "2026-10-31T12:43:35.121135+00:00"
 }
