@@ -1,1 +1,27 @@
-[]
+[
+  {
+    "product_id": "6258651162",
+    "note": "First preview source registry. Every file must still pass actual OpenAI identity review. External source publication permissions remain unset.",
+    "media": [
+      {
+        "url": "https://thumbnail.coupangcdn.com/thumbnails/remote/1080x1080ex/image/retail/images/1010619132795-e69b5727-f6ba-414d-a159-60d9b2e49f91.jpg",
+        "type": "image",
+        "source_url": "https://www.coupang.com/vp/products/6258651186",
+        "publication_allowed": false
+      },
+      {
+        "url": "https://thumbnail.coupangcdn.com/thumbnails/remote/1080x1080ex/image/retail/images/218544998586617-d3499b18-4f10-4a51-b1d1-75e90745ecd2.jpg",
+        "type": "image",
+        "source_url": "https://www.coupang.com/vp/products/6258651162",
+        "publication_allowed": false
+      },
+      {
+        "url": "https://gi.esmplus.com/puretec/ACF_Hsink/8510/at8510_034.jpg",
+        "type": "image",
+        "source_url": "https://m.atojet.co.kr/product/detail.html?product_no=133",
+        "crop": [300, 865, 900, 1340],
+        "publication_allowed": false
+      }
+    ]
+  }
+]

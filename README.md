@@ -10,12 +10,16 @@
 |---|---|---|
 | Secret | `COUPANG_ACCESS_KEY` | 이미 발급받은 쿠팡 파트너스 Access Key |
 | Secret | `COUPANG_SECRET_KEY` | 쿠팡 파트너스 Secret Key |
-| Secret | `GEMINI_API_KEY` | 자료 탐색·대본·멀티모달 검수 |
+| Secret | `OPENAI_API_KEY` | OpenAI 자료 탐색·대본·이미지·원음 검수 |
 | Secret | `SHOPPING_YOUTUBE_TOKEN_JSON` | **쇼핑 채널 전용** Google OAuth 사용자 토큰 JSON |
-| Variable | `SHOPPING_CHANNEL_URL` | 선택 재정의. 기본 게시 대상은 살림발견 `@salimfind83` |
+| Variable | `SHOPPING_CHANNEL_URL` | 선택 재정의. 기본 게시 대상은 살림발견 `@salimfind83`이며 검증된 채널 ID와 일치해야 함 |
 | Variable | `SHOPPING_AUTOPUBLISH` | 처음에는 미설정. 시범 영상 확인 후 `true`로 한 번 설정하면 정기 실행마다 자동 게시 |
 
-선택 설정 `REVIEW_API_KEY` / `REVIEW_MODEL`은 검수용 Gemini 키·모델을 분리할 때 사용합니다. 현재 기본 검수 모델은 `gemini-2.5-flash`이며, 다른 회사의 AI와 교차 검수하는 구현은 아닙니다. 기술 검사는 Python·Pillow·FFmpeg가 별도로 수행합니다. AI 예외, 불명확한 판정, 누락된 검사 항목은 통과로 바꾸지 않습니다.
+AI 처리는 OpenAI만 사용합니다. 기본 모델은 자료 탐색·대본·이미지 검수에 `gpt-6.1-sol`, 독립 음성 인식에 `gpt-transcribe`, 원본 음성의 의미 대조에 `gpt-audio-1.5`입니다. `OPENAI_MODEL`, `OPENAI_REVIEW_MODEL`, `OPENAI_TRANSCRIBE_MODEL`, `OPENAI_AUDIO_REVIEW_MODEL` 환경변수로 각각 변경할 수 있습니다. 이전 AI 서비스의 키·모델 환경변수는 사용하지 않습니다.
+
+텍스트·사진 검수는 Responses API의 엄격한 JSON Schema와 로컬 JSON Schema 검사를 함께 사용합니다. 원음 검수 모델은 Structured Outputs를 지원하지 않아 JSON 지시와 로컬 스키마 검사를 적용하며, 형식 위반·누락·UNKNOWN·REJECT는 모두 중단합니다. 실제 MP3는 음성 검수 모델에 직접 전달합니다. 독립 전사에는 정답 대본을 주지 않습니다.
+
+실행당 기본 AI 요청 상한은 80회입니다(`MAX_AI_REQUESTS`). API가 반환한 모델별 토큰·음성 사용량은 `current_episode/ai_usage.json`에 기록합니다. 이는 청구 금액이나 달러 단위의 강제 지출 상한은 아닙니다. 429·인증·모델 접근 오류는 상품 불일치로 처리하지 않고 실행을 중단합니다. FFmpeg·Pillow 기술 검사와 중복 게시 방지는 별도로 유지합니다.
 
 쇼핑 채널 토큰은 기존 역사 채널 토큰과 분리합니다. 필요한 경우 로컬에서 `python authorize_youtube.py client_secret.json`으로 한 번 인증합니다. `youtube.upload`, `youtube.readonly`, `youtube.force-ssl` 범위가 필요합니다. 생성되는 `shopping_youtube_token.json`은 Git에서 제외됩니다. 채널 ID가 설정한 대상과 일치해야 업로드할 수 있습니다.
 
@@ -28,7 +32,7 @@
 - 쇼핑 일정은 매일 한국 시간 오전 9시입니다. `SHOPPING_AUTOPUBLISH=true`를 한 번 설정하면 매번 승인할 필요가 없습니다. 기존 `auto-shorts` 역사 채널의 월·수·금 일정과는 별개입니다.
 - 시범 결과는 실행 페이지의 `pipeline-실행번호-시도번호` 아티팩트에서 내려받습니다. `final_shorts.mp4`, `thumbnail.jpg`, `subtitles.srt`, 원본 출처와 검수 보고서가 포함됩니다. 보관 기간은 30일입니다.
 - 공개가 완료된 실행에서 **Re-run jobs**를 눌러도 새 영상을 만들지 않습니다. 결과가 불확실한 업로드는 기존 업로드를 고유 태그로 찾고, 찾지 못하면 중복 업로드하지 않고 중단합니다.
-- API가 차단되거나 정확한 자료 3개를 확보하지 못하면 해당 상품을 건너뜁니다. 찾지 못한 날에는 게시하지 않습니다. 매일 반드시 게시된다는 보장은 없습니다.
+- 정확한 자료 3개를 확보하지 못하면 해당 상품을 건너뜁니다. AI 서비스 장애·한도·인증 오류는 즉시 실행을 중단합니다. 찾지 못한 날에는 게시하지 않습니다. 매일 반드시 게시된다는 보장은 없습니다.
 
 ## 자료 및 검수
 
@@ -48,6 +52,8 @@
   }
 ]
 ```
+
+첫 시범 영상의 실제 사진 3장은 `product_sources.json`에 명시되어 있습니다. 등록된 자료도 매번 상품 일치 검수를 통과해야 합니다. `crop`은 원본 이미지 안의 실제 사진 영역을 고르는 정수 좌표 [left, top, right, bottom]이며, 서로 다른 사진을 복제해 채우는 용도로 사용하지 않습니다.
 
 공개 검색으로 발견했지만 사용 권한을 확인하지 않은 리뷰는 시범 영상에서만 이용됩니다. 자동 게시 실행에서는 등록된 출처와 상품 판매 자료만 사용합니다. `approved_review_url_prefixes`에도 재사용 가능한 출처를 등록할 수 있습니다. 영상 하나에서 세 구간을 추출할 수 있으나, 각 구간의 시작·중간·끝에서 정확한 상품을 확인하고 장면 유사도 검사도 통과해야 합니다.
 
@@ -72,3 +78,7 @@ python -m unittest discover -s tests -v
 ```
 
 FFmpeg/ffprobe와 한국어 글꼴이 필요합니다. Ubuntu에서는 `ffmpeg fonts-nanum`, Windows에서는 맑은 고딕 또는 `KOREAN_FONT` 경로를 사용합니다. 테스트에서는 합성 음원과 가짜 API 응답을 쓰며, 실제 상품 생성·게시 성공 여부는 연결 검사 및 실제 시범 실행으로 별도 확인합니다.
+
+## OpenAI 연결 검사
+
+`OpenAI capability check`는 실제 API로 JSON 응답, 테스트 이미지 판독, 출처가 있는 검색, 독립 음성 인식과 원음 검수를 수행합니다. 이 검사는 상품 영상을 생성하거나 게시하지 않습니다. 이전 제공자나 수동 시범본의 검수 기록은 OpenAI 검수로 자동 승격되지 않습니다.
