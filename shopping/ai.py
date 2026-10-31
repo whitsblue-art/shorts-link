@@ -95,19 +95,6 @@ class AI:
         require_pass(result, checks)
         return {**result, "review_model": self.review_model, "checked_at": utc_now()}
 
-    def image(self, prompt, path, kind, references=()):
-        candidate = self.call(self.image_model, [{"text": prompt}] + [image_part(p) for p in references],
-            config={"responseModalities": ["TEXT", "IMAGE"],
-                    "imageConfig": {"aspectRatio": "9:16" if kind == "shorts" else "16:9"}})
-        for part in candidate.get("content", {}).get("parts", []):
-            blob = part.get("inlineData", {})
-            if blob.get("mimeType", "").startswith("image/") and blob.get("data"):
-                with Image.open(BytesIO(base64.b64decode(blob["data"]))) as image:
-                    if min(image.size) < 512:
-                        raise GateError("Generated image resolution is insufficient")
-                    image.convert("RGB").save(path, "JPEG", quality=95)
-                return
-        raise GateError("Image model returned no usable image")
 
 
 def image_part(path):

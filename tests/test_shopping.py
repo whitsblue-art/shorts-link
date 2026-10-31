@@ -49,6 +49,12 @@ class ShoppingTests(unittest.TestCase):
         self.assertTrue(config["catalogue_base_url"].startswith("https://"))
         self.assertTrue(config["keywords"])
         self.assertTrue(all(isinstance(word, str) and word.strip() for word in config["keywords"]))
+
+    def test_approved_source_matches_origin_and_path_boundary(self):
+        prefixes = ["https://reviews.example/approved"]
+        self.assertTrue(assets.allowed_source("https://reviews.example/approved/video", prefixes))
+        self.assertFalse(assets.allowed_source("https://reviews.example/approved-malicious", prefixes))
+        self.assertFalse(assets.allowed_source("https://reviews.example.evil.org/approved", prefixes))
     def test_hmac_uses_exact_query_and_utc(self):
         now = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
         path, query = PREFIX + "/products/search", "keyword=%EC%88%98%EC%A0%84&limit=1"

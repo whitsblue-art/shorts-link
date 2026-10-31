@@ -7,7 +7,7 @@ import shutil
 
 from .ai import AI
 from .artifacts import restore
-from .assets import collect
+from .assets import collect, allowed_source
 from .catalogue import read_products, register, export_site, verify_live
 from .core import GateError, ROOT, atomic_json, fingerprint
 from .coupang import Coupang
@@ -82,7 +82,15 @@ def prepare(ledger, settings, publish):
         if pending.get("qa_passed"):
             verified_files(pending, directory)
             if publish and pending.get("publication_allowed") is not True:
-                raise GateError("Pending preview uses unapproved review media; configure source permission before promotion")
+                assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
+                registry = json.loads((ROOT / "product_sources.json").read_text(encoding="utf-8"))
+                licensed = {m["url"] for row in registry if str(row.get("product_id")) == pending["product"]["product_id"]
+                    for m in row.get("media", []) if m.get("publication_allowed") is True}
+                allowed = all(a.get("publication_allowed") is True or a["url"] in licensed
+                    or allowed_source(a.get("source_url", ""), settings.get("approved_review_url_prefixes", [])) for a in assets)
+                if not allowed:
+                    raise GateError("Pending preview uses unapproved review media; configure source permission before promotion")
+                ledger.update(pending, publication_allowed=True)
             return pending
         assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
         prepare_episode(AI(), ledger, pending, assets, settings, directory)

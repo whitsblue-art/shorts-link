@@ -242,68 +242,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     path.write_text(text, encoding="utf-8")
 
 
-def compose_frame(source, profile):
-    """Keep all illustration content above a dedicated subtitle panel.
-
-    At the maximum 1.06x zoom the foreground still ends above 0.72H,
-    so subtitles cannot obscure a face or a diagram in any frame.
-    """
-    size = (profile.width, profile.height)
-    background = ImageOps.fit(source.convert("RGB"), size, method=Image.Resampling.LANCZOS)
-    background = ImageEnhance.Brightness(background.filter(ImageFilter.GaussianBlur(28))).enhance(.35)
-    foreground = ImageOps.contain(source.convert("RGB"),
-        (round(profile.width * .96), round(profile.height * .66)), method=Image.Resampling.LANCZOS)
-    background.paste(foreground, ((profile.width - foreground.width) // 2, round(profile.height * .03)))
-    return background
 
 
-def render(meta, kind, directory, timings, profile=None):
-    profile = profile or PROFILES[kind]
-    scenes = meta["scenes"]
-    if len(scenes) != len(timings) or not scenes:
-        raise GateError("Scene/timing count mismatch")
-    lengths, narration_lengths, all_cues, elapsed = [], [], [], 0.0
-    for scene, boundaries in zip(scenes, timings):
-        number = scene["scene_num"]
-        image, audio = directory / f"scene_{number:02d}.jpg", directory / f"voice_{number:02d}.mp3"
-        if not image.is_file() or not audio.is_file():
-            raise GateError(f"Scene {number} asset missing; cannot skip it")
-        dur = duration(audio)
-        clip_duration = math.ceil(dur * profile.fps) / profile.fps
-        validate_boundaries(boundaries, scene["narration"], dur)
-        cues = caption_cues(boundaries, profile)
-        write_ass(directory / f"captions_{number:02d}.ass", cues, profile)
-        with Image.open(image) as source:
-            compose_frame(source, profile).save(directory / f"framed_{number:02d}.jpg", quality=95)
-        vf = (f"zoompan=z='min(max(zoom,pzoom)+0.00025,1.06)':d=1:s={profile.width}x{profile.height}:fps={profile.fps},"
-              "drawbox=x=0:y=ih*0.72:w=iw:h=ih*0.28:color=0x10151d@0.98:t=fill,"
-              f"subtitles=filename=captions_{number:02d}.ass")
-        run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-loop", "1", "-framerate", str(profile.fps),
-            "-i", f"framed_{number:02d}.jpg", "-i", audio.name, "-vf", vf,
-            "-map", "0:v:0", "-map", "1:a:0", "-c:v", "libx264", "-preset", "veryfast", "-crf", "21",
-            "-pix_fmt", "yuv420p", "-r", str(profile.fps), "-fps_mode", "cfr",
-            "-c:a", "aac", "-b:a", "160k", "-ar", "48000", "-ac", "2", "-af", "apad",
-            "-t", f"{clip_duration:.6f}", f"clip_{number:02d}.mp4"], timeout=900, cwd=directory)
-        all_cues.extend({**cue, "start": cue["start"] + elapsed, "end": cue["end"] + elapsed} for cue in cues)
-        lengths.append(clip_duration)
-        narration_lengths.append(dur)
-        elapsed += clip_duration
-    listing = directory / "concat.txt"
-    listing.write_text("".join(f"file 'clip_{s['scene_num']:02d}.mp4'\nduration {d:.9f}\n"
-                              for s, d in zip(scenes, lengths)), encoding="utf-8")
-    final = directory / f"final_{kind}.mp4"
-    run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
-         "-i", listing.name, "-vf", f"fps={profile.fps}", "-fps_mode", "cfr",
-         "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p",
-         "-af", "aresample=async=1:first_pts=0", "-c:a", "aac", "-ar", "48000", "-ac", "2",
-         "-movflags", "+faststart", final.name], cwd=directory, timeout=900)
-    subtitles = "".join(f"{i}\n{timestamp(c['start'])} --> {timestamp(c['end'])}\n" + "\n".join(c["lines"]) + "\n\n"
-                        for i, c in enumerate(all_cues, 1))
-    (directory / "subtitles.srt").write_text(subtitles, encoding="utf-8")
-    manifest = {"profile": profile.__dict__, "scene_durations": lengths, "narration_durations": narration_lengths, "cues": all_cues,
-                "sha256": fingerprint(final.read_bytes())}
-    atomic_json(directory / "render_manifest.json", manifest)
-    return final, manifest
 
 
 def validate_video(path, manifest, profile):
@@ -341,86 +281,12 @@ def compare_subtitle_text(expected, observed):
         raise GateError(f"Rendered subtitle characters differ: expected={expected}, observed={observed}")
 
 
-def review_render(ai, meta, video, manifest, directory):
-    elapsed, samples, hashes = 0.0, [], []
-    for scene, dur in zip(meta["scenes"], manifest["scene_durations"]):
-        at = elapsed + dur / 2
-        frame = directory / f"review_frame_{scene['scene_num']:02d}.jpg"
-        run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", str(at), "-i", str(video),
-             "-frames:v", "1", "-update", "1", str(frame)])
-        with Image.open(frame) as image:
-            if sum(ImageStat.Stat(image.convert("RGB")).mean) < 12:
-                raise GateError("Sampled final frame is black")
-        dhash = image_hash(frame)
-        if any((dhash ^ previous).bit_count() <= 2 for previous in hashes):
-            raise GateError("Final scenes appear duplicated")
-        hashes.append(dhash)
-        expected = next((c["lines"] for c in manifest["cues"] if c["start"] <= at < c["end"]), [])
-        ocr = ai.json("Read ONLY the large Korean subtitle overlay in this video frame. "
-            "Ignore small writing on historical books/documents in the illustration. "
-            'Transcribe visible characters without guessing. Return JSON {"subtitle_text":""}; empty if no subtitle.',
-            [image_part(frame)], review=True, schema={"type": "OBJECT", "required": ["subtitle_text"],
-                "properties": {"subtitle_text": {"type": "STRING"}}})
-        compare_subtitle_text(expected, ocr["subtitle_text"])
-        review = ai.judge("This is an actual encoded video frame, not a raw illustration. "
-            "Check only visual readability, safe bounds, and illustration/narration match. "
-            "Subtitle character equality has already been checked by OCR and deterministic code. "
-            "This is ONE MOMENT of time-synchronized captions. A caption fragment may end mid-sentence; "
-            "later words appear later. Never require the whole sentence in one frame. Readability means "
-            "glyph size, contrast and physically uncut letters, NOT sentence completeness. "
-            "Do not reject based on spacing or line breaks. Grade the sharp foreground illustration, not "
-            "decorative blurred background. Important foreground details must remain visible.\n"
-            + json.dumps({"visual_prompt": scene["visual_prompt"], "current_caption_fragment": expected}, ensure_ascii=False),
-            ["readability", "safe_bounds", "scene_match"], [image_part(frame)])
-        samples.append({"time": at, "subtitle_text": ocr["subtitle_text"], "character_match": True, "review": review})
-        elapsed += dur
-        atomic_json(directory / "render_review.json", samples)
 
 
-def thumbnail(ai, meta, kind, directory):
-    size = (1080, 1920) if kind == "shorts" else (1920, 1080)
-    with Image.open(directory / "scene_01.jpg") as source:
-        image = ImageOps.fit(source.convert("RGB"), size, method=Image.Resampling.LANCZOS).convert("RGBA")
-    overlay = Image.new("RGBA", size)
-    draw = ImageDraw.Draw(overlay)
-    title = meta["thumbnail_text"].strip()
-    # Korean is drawn with a real font, never painted by the image generation model.
-    for font_size in range(round(size[0] * 0.09), 39, -2):
-        face = ImageFont.truetype(font_path(), font_size)
-        lines, current = [], ""
-        for char in title:
-            if char == "\n" or face.getlength(current + char) > size[0] * 0.84:
-                lines.append(current)
-                current = "" if char == "\n" else char
-            else:
-                current += char
-        if current:
-            lines.append(current)
-        if len(lines) <= 3:
-            break
-    else:
-        raise GateError("Thumbnail text cannot fit safely")
-    top = round(size[1] * 0.12)
-    line_height = round(font_size * 1.4)
-    draw.rounded_rectangle((size[0] * .04, top - 25, size[0] * .96, top + len(lines) * line_height + 20),
-                           radius=24, fill=(0, 0, 0, 205))
-    for index, line in enumerate(lines):
-        draw.text(((size[0] - face.getlength(line)) / 2, top + index * line_height), line,
-                  font=face, fill=(255, 219, 72), stroke_width=3, stroke_fill="black")
-    image.alpha_composite(overlay)
-    path = directory / "thumbnail.jpg"
-    image.convert("RGB").save(path, quality=90)
-    if path.stat().st_size > 2_000_000:
-        image.convert("RGB").save(path, quality=75)
-    review = ai.judge("Check that this thumbnail matches the documentary and contains exactly the intended "
-        "Korean hook without misleading claims or cut-off/illegible text.\n" + json.dumps({"title": meta["title"],
-        "hook": title, "facts": meta["facts"]}, ensure_ascii=False),
-        ["truthful_relation", "correct_text", "legibility", "safe_bounds"], [image_part(path)])
-    atomic_json(directory / "thumbnail_review.json", {**review, "sha256": fingerprint(path.read_bytes())})
-    return path
 
 
 def clean_intermediates(directory):
-    for pattern in ("voice_raw_*.mp3", "clip_*.mp4", "framed_*.jpg", "concat.txt"):
+    for pattern in ("voice_raw_*.mp3", "clip_*.mp4", "framed_*.jpg", "concat.txt", "source_*.mp4",
+                    "candidate_*.jpg", "overlay_*.png", "caption_crop.jpg"):
         for path in directory.glob(pattern):
             path.unlink()

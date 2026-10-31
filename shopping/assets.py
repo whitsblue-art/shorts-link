@@ -22,6 +22,17 @@ from .media import image_hash, probe
 BAD_IMAGES = ("1584622650111", "1556911220")
 
 
+def allowed_source(url, prefixes):
+    value = urlparse(url)
+    for prefix in prefixes:
+        trusted = urlparse(prefix)
+        path = trusted.path.rstrip("/")
+        if (trusted.scheme == value.scheme == "https" and trusted.netloc == value.netloc
+                and (value.path == path or value.path.startswith(path + "/"))):
+            return True
+    return False
+
+
 def public_url(url):
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.username or parsed.port not in (None, 443) or not parsed.hostname:
@@ -150,7 +161,7 @@ def discover(ai, product, siblings, settings, directory):
                 body, resolved, content_type = fetch(page, 5_000_000)
                 if "html" not in content_type.lower():
                     continue
-                approved = any(resolved.startswith(prefix) for prefix in settings.get("approved_review_url_prefixes", []))
+                approved = allowed_source(resolved, settings.get("approved_review_url_prefixes", []))
                 for item in parse_page(body, resolved):
                     candidates.append({**item, "source_url": resolved, "source_title": chunk.get("web", {}).get("title", ""),
                                        "publication_allowed": approved})
