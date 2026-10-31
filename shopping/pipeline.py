@@ -111,6 +111,7 @@ def prepare(ledger, settings, publish):
             eid_dir.mkdir(parents=True, exist_ok=True)
             try:
                 product["affiliate_link"] = api.deeplink(product)
+                atomic_json(eid_dir / "product.json", product)
                 assets = collect(ai, product, siblings, settings, eid_dir, for_publication=publish)
             except GateError as exc:
                 failures.append({"product_id": product["product_id"], "error": str(exc)})

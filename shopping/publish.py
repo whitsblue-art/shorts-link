@@ -9,6 +9,7 @@ from .channel import resolve_channel
 
 
 def connect_youtube():
+    from google.auth.exceptions import RefreshError
     from google.auth.transport.requests import Request
     from google.oauth2.credentials import Credentials
     from googleapiclient.discovery import build
@@ -16,7 +17,17 @@ def connect_youtube():
     if not raw:
         raise GateError("SHOPPING_YOUTUBE_TOKEN_JSON missing; connect the shopping channel separately")
     try:
-        token_info = json.loads(raw)
+        try:
+            token_info = json.loads(raw.lstrip('\ufeff'))
+        except ValueError:
+            raise GateError("SHOPPING_YOUTUBE_TOKEN_JSON is not valid JSON; paste the entire generated token file") from None
+        if not isinstance(token_info, dict):
+            raise GateError("SHOPPING_YOUTUBE_TOKEN_JSON must contain the generated JSON object")
+        if "installed" in token_info or "web" in token_info:
+            raise GateError("Client-secret JSON was registered instead of shopping_youtube_token.json")
+        missing = [k for k in ("refresh_token", "client_id", "client_secret") if not token_info.get(k)]
+        if missing:
+            raise GateError("Registered token is missing required fields: " + ", ".join(missing))
         scopes = token_info.get("scopes", [])
         if scopes:
             if isinstance(scopes, str):
@@ -32,6 +43,10 @@ def connect_youtube():
         return build("youtube", "v3", credentials=creds, cache_discovery=False)
     except GateError:
         raise
+    except RefreshError as exc:
+        code = next((x.get("error") for x in exc.args if isinstance(x, dict)), None)
+        safe = code if code in ("invalid_grant", "invalid_client", "unauthorized_client", "access_denied") else "refresh_rejected"
+        raise GateError("Google OAuth token refresh failed: " + safe) from None
     except Exception:
         raise GateError("YouTube authentication failed; token details are not logged") from None
 

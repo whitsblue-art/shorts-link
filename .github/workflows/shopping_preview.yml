@@ -1,0 +1,46 @@
+name: Shopping first preview
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/shopping_preview.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: shopping-publication
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      REVIEW_API_KEY: ${{ secrets.REVIEW_API_KEY || secrets.GEMINI_API_KEY }}
+      REVIEW_MODEL: ${{ vars.REVIEW_MODEL || 'gemini-2.5-flash' }}
+      COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
+      COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-nanum
+          python -m pip install -r requirements.txt
+      - name: Prepare reusable product media and reviewed video only
+        # --publish selects reusable sources; --prepare does not publish anything.
+        # No YouTube credential, catalog registration or release step is provided.
+        run: python main.py --prepare --publish
+      - name: Save preview and verification evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-${{ github.run_id }}-${{ github.run_attempt }}
+          path: current_episode/
+          retention-days: 30
+          if-no-files-found: warn

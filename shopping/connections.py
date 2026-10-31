@@ -49,6 +49,8 @@ def main():
             from .check_channel import main as check_channel
             check_channel()
             results.append({"check": "Shopping channel authorization", "ok": True, "detail": "OAuth channel matches the intended destination"})
+        except GateError as exc:
+            results.append({"check": "Shopping channel authorization", "ok": False, "detail": str(exc)})
         except Exception:
             results.append({"check": "Shopping channel authorization", "ok": False, "detail": "OAuth/target verification failed; no credentials logged"})
     else:
