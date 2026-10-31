@@ -21,7 +21,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python - <<'PY'
-          import os,json,requests
+          import os,json,re,requests
           from pathlib import Path
           key=os.environ['GEMINI_API_KEY']
           headers={'x-goog-api-key':key}
@@ -30,10 +30,13 @@ jobs:
           names=[m['name'].split('/')[-1] for m in response.json().get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[])]
           print('AVAILABLE_MODELS='+json.dumps(names),flush=True)
           reports=[]
-          for model in ['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-3.1-flash-lite']:
+          for model in ['gemini-3-flash-preview','gemini-3.8-flash','gemma-4-31b-it']:
               if model not in names: continue
               r=requests.post('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',headers=headers,json={'contents':[{'parts':[{'text':'Reply with OK only.'}]}],'generationConfig':{'maxOutputTokens':32}},timeout=(10,40))
               row={'model':model,'http':r.status_code,'quota':[]}
+              if r.status_code>=400:
+                  message=str(r.json().get('error',{}).get('message','')).replace(key,'[redacted]')
+                  row['error_message']=re.sub(r'AIza[A-Za-z0-9_-]+','[redacted]',message)[:600]
               if r.status_code==429:
                   for detail in r.json().get('error',{}).get('details',[]):
                       for v in detail.get('violations',[]):
