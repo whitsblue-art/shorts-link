@@ -130,7 +130,7 @@ def discover(ai, product, siblings, settings, directory):
     for row in registry:
         if str(row.get("product_id")) == product["product_id"]:
             for item in row.get("media", []):
-                candidates.append({**item, "source_title": product["title"], "source_url": item.get("source_url", item["url"]),
+                candidates.append({**item, "source_title": item.get("source_title", product["title"]), "source_url": item.get("source_url", item["url"]),
                                    "publication_allowed": item.get("publication_allowed") is True})
     try:
         body, page, content_type = fetch(product["canonical_url"], 8_000_000)

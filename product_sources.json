@@ -4,6 +4,14 @@
     "note": "First preview source registry. Every file must still pass actual OpenAI identity review. External source publication permissions remain unset.",
     "media": [
       {
+        "url": "https://down-tw.img.susercontent.com/file/sg-11134207-8227t-mhrta31s5r0gfd",
+        "type": "image",
+        "source_url": "https://shopee.tw/product/1560756420/51552462516",
+        "source_title": "Atojet cleansing kitchen faucet filter, Cobra type, ACF SINK HEAD 2.0",
+        "crop": [230, 350, 850, 850],
+        "publication_allowed": false
+      },
+      {
         "url": "https://thumbnail.coupangcdn.com/thumbnails/remote/1080x1080ex/image/retail/images/1010619132795-e69b5727-f6ba-414d-a159-60d9b2e49f91.jpg",
         "type": "image",
         "source_url": "https://www.coupang.com/vp/products/6258651186",

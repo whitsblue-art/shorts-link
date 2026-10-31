@@ -31,6 +31,7 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-nanum
           python -m pip install -r requirements.txt
       - name: Prepare reviewed preview only
+        # Source refresh: inspect the front spray face and labelled retail box.
         # Preview only: source reuse permission is checked separately before publication.
         # No YouTube credential, catalog registration or release step is provided.
         run: python main.py --prepare
