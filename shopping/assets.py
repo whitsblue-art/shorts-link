@@ -196,12 +196,14 @@ def collect(ai, product, siblings, settings, directory, for_publication=False):
     reference = directory / "reference.jpg"
     save_image(product["reference_image"], reference, minimum=180)
     candidates = discover(ai, product, siblings, settings, directory)
+    print(f'[media] Discovered {len(candidates)} candidate assets for product {product["product_id"]}',flush=True)
     approved, hashes, used, attempts = [], [], set(), []
     for candidate in candidates[:32]:
         url = candidate["url"]
         if url in used or (for_publication and not candidate.get("publication_allowed")):
             continue
         used.add(url)
+        print(f'[media] Inspect candidate {len(used)}; approved scenes {len(approved)}/3',flush=True)
         try:
             if candidate["type"] == "video":
                 if urlparse(url).path.lower().endswith(".m3u8"):
@@ -267,6 +269,7 @@ def collect(ai, product, siblings, settings, directory, for_publication=False):
         if len(approved) == 3:
             break
     atomic_json(directory / "media_attempts.json", attempts)
+    print(f'[media] Exact-match distinct scenes: {len(approved)}/3',flush=True)
     if len(approved) != 3:
         raise GateError(f"Only {len(approved)} distinct matching product scenes found; no cloning or stock fallback")
     atomic_json(directory / "assets.json", approved)

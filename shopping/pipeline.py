@@ -36,6 +36,7 @@ def verified_files(episode, directory):
 
 
 def prepare_episode(ai, ledger, episode, assets, settings, directory):
+    print(f'[stage] Script review for catalog {episode["catalogue_id"]}',flush=True)
     meta_path = directory / "meta.json"
     if meta_path.exists():
         meta=json.loads(meta_path.read_text(encoding='utf-8'))
@@ -49,10 +50,14 @@ def prepare_episode(ai, ledger, episode, assets, settings, directory):
         f"상품 정보: 채널 프로필 링크에서 [{episode['catalogue_id']}번] 검색\n"
         + base + "\n가격·옵션·호환 여부는 상품 페이지에서 확인하세요.\n#Shorts #쿠팡파트너스 #생활용품")
     atomic_json(meta_path, meta)
+    print('[stage] TTS, independent transcription and original-audio review',flush=True)
     timings = media.generate_voices(ai, meta, "shorts", directory)
+    print('[stage] Render all three scenes',flush=True)
     final, manifest = design.render(meta, directory, timings)
     signal = media.validate_video(final, manifest, media.PROFILES["shorts"])
+    print('[stage] Encoded-frame OCR, identity and readability review',flush=True)
     design.review(ai, meta, final, manifest, directory)
+    print('[stage] Thumbnail generation and review',flush=True)
     thumbnail = design.thumbnail(ai, meta, directory)
     names = ["final_shorts.mp4", "thumbnail.jpg", "meta.json", "assets.json", "reference.jpg"]
     names += [f"scene_{n:02d}.jpg" for n in range(1, 4)]
@@ -121,6 +126,7 @@ def prepare(ledger, settings, publish):
     maximum = min(8, max(1, int(settings.get("max_products_per_run", 4))))
     for keyword in settings["keywords"]:
         siblings = api.search(keyword)
+        print(f'[stage] Found {len(siblings)} affiliate product candidates',flush=True)
         for product in siblings:
             if product["product_id"] in attempted or ledger.seen(product, products):
                 continue
@@ -130,6 +136,7 @@ def prepare(ledger, settings, publish):
             eid_dir = ROOT / "current_episode" / fingerprint({"product_id": product["product_id"], "version": 1})[:24]
             eid_dir.mkdir(parents=True, exist_ok=True)
             try:
+                print(f'[stage] Collect exact-match media for product {product["product_id"]}',flush=True)
                 product["affiliate_link"] = api.deeplink(product)
                 atomic_json(eid_dir / "product.json", product)
                 assets = collect(ai, product, siblings, settings, eid_dir, for_publication=publish)

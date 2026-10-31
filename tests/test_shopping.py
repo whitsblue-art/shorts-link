@@ -239,7 +239,7 @@ class ShoppingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             (directory / "video.mp4").write_bytes(b"changed")
-            row = {"qa_passed": True, "asset_hashes": {"video.mp4": fingerprint(b"reviewed")}}
+            row = {"qa_passed": True, "qa_provider":"openai", "qa_version":2, "asset_hashes": {"video.mp4": fingerprint(b"reviewed")}}
             with self.assertRaises(GateError):
                 verified_files(row, directory)
 

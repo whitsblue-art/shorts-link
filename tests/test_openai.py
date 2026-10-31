@@ -121,6 +121,16 @@ class OpenAITests(unittest.TestCase):
             with self.assertRaisesRegex(GateError,'current OpenAI'):
                 verified_files({'qa_passed':True,'qa_provider':'old-provider','qa_version':1},Path(temp))
 
+    def test_current_review_receipt_accepts_only_matching_file_bytes(self):
+        from shopping.core import fingerprint
+        with tempfile.TemporaryDirectory() as temp:
+            directory=Path(temp);(directory/'video.mp4').write_bytes(b'reviewed')
+            row={'qa_passed':True,'qa_provider':'openai','qa_version':2,'asset_hashes':{'video.mp4':fingerprint(b'reviewed')}}
+            verified_files(row,directory)
+            (directory/'video.mp4').write_bytes(b'replaced')
+            with self.assertRaisesRegex(GateError,'modified'):
+                verified_files(row,directory)
+
     def test_active_workflows_do_not_use_previous_provider(self):
         root=Path(__file__).resolve().parent.parent
         for path in (root/'.github/workflows').glob('*.yml'):
