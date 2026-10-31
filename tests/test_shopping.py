@@ -15,7 +15,7 @@ from PIL import Image
 from shopping.core import GateError, Journal, fingerprint, require_pass
 from shopping.coupang import authorization, normalize_product, Coupang, PREFIX
 from shopping.catalogue import make_entry, merge_products, verify_live
-from shopping.channel import resolve_channel
+from shopping.channel import resolve_channel, public_channel
 from shopping.pipeline import verified_files
 from shopping.publish import Publisher
 from shopping.state import Ledger, validate_catalogue
@@ -55,6 +55,39 @@ class ShoppingTests(unittest.TestCase):
         self.assertTrue(assets.allowed_source("https://reviews.example/approved/video", prefixes))
         self.assertFalse(assets.allowed_source("https://reviews.example/approved-malicious", prefixes))
         self.assertFalse(assets.allowed_source("https://reviews.example.evil.org/approved", prefixes))
+
+    def test_public_channel_requires_actual_metadata(self):
+        response = Mock(status_code=200, text='{"channelMetadataRenderer":{"title":"살림발견","externalId":"UCr2J97efKeupnbuk642zksg"}}')
+        with patch("shopping.channel.requests.get", return_value=response):
+            identity = public_channel("https://www.youtube.com/@salimfind83")
+            self.assertEqual(identity["title"], "살림발견")
+            response.text = '<html>Verify you are human</html>'
+            with self.assertRaises(GateError):
+                public_channel("https://www.youtube.com/@salimfind83")
+
+    def test_different_oauth_channel_cannot_bind_or_upload(self):
+        journal = Mock()
+        journal.data = Journal.empty()
+        youtube = Mock()
+        youtube.channels.return_value.list.return_value.execute.return_value = {"items": [{"id": "UC" + "x" * 22,
+            "contentDetails": {"relatedPlaylists": {"uploads": "uploads"}}}]}
+        with patch("shopping.publish.resolve_channel", return_value="UCr2J97efKeupnbuk642zksg"):
+            with self.assertRaises(GateError):
+                Publisher(journal, youtube=youtube)
+        journal.save.assert_not_called()
+        youtube.videos.assert_not_called()
+
+    def test_environment_override_cannot_redirect_pinned_channel(self):
+        journal = Mock()
+        journal.data = Journal.empty()
+        wrong = "UC" + "x" * 22
+        youtube = Mock()
+        youtube.channels.return_value.list.return_value.execute.return_value = {"items": [{"id": wrong,
+            "contentDetails": {"relatedPlaylists": {"uploads": "uploads"}}}]}
+        with patch("shopping.publish.resolve_channel", return_value=wrong):
+            with self.assertRaisesRegex(GateError, "verified shopping channel ID"):
+                Publisher(journal, youtube=youtube)
+        journal.save.assert_not_called()
     def test_hmac_uses_exact_query_and_utc(self):
         now = datetime(2026, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
         path, query = PREFIX + "/products/search", "keyword=%EC%88%98%EC%A0%84&limit=1"

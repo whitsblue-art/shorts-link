@@ -39,6 +39,8 @@ def main():
         expected = config.get("shopping_channel_name")
         if expected and identity["title"] != expected:
             raise GateError("Public channel name does not match the configured shopping channel")
+        if config.get("shopping_channel_id") and identity["channel_id"] != config["shopping_channel_id"]:
+            raise GateError("Public channel ID differs from the verified shopping destination")
         results.append({"check": "Public shopping channel", "ok": True, "detail": identity})
     except (GateError, ValueError) as exc:
         results.append({"check": "Public shopping channel", "ok": False, "detail": str(exc)})

@@ -55,6 +55,8 @@ class Publisher:
         settings = json.loads((ROOT / "shopping_config.json").read_text(encoding="utf-8"))
         target = os.getenv("SHOPPING_CHANNEL_URL") or settings.get("shopping_channel_url", "")
         expected = resolve_channel(self.youtube, target)
+        if settings.get("shopping_channel_id") and expected != settings["shopping_channel_id"]:
+            raise GateError("Destination differs from the verified shopping channel ID")
         if self.channel_id != expected or (journal.data.get("channel_id") and journal.data["channel_id"] != expected):
             raise GateError("YouTube token belongs to a different channel")
         if not journal.data.get("channel_id"):

@@ -12,7 +12,7 @@
 | Secret | `COUPANG_SECRET_KEY` | 쿠팡 파트너스 Secret Key |
 | Secret | `GEMINI_API_KEY` | 자료 탐색·대본·멀티모달 검수 |
 | Secret | `SHOPPING_YOUTUBE_TOKEN_JSON` | **쇼핑 채널 전용** Google OAuth 사용자 토큰 JSON |
-| Variable | `SHOPPING_CHANNEL_URL` | 쇼핑 채널 URL, @핸들 또는 UC로 시작하는 채널 ID |
+| Variable | `SHOPPING_CHANNEL_URL` | 선택 재정의. 기본 게시 대상은 살림발견 `@salimfind83` |
 | Variable | `SHOPPING_AUTOPUBLISH` | 처음에는 미설정. 시범 영상 확인 후 `true`로 한 번 설정하면 정기 실행마다 자동 게시 |
 
 선택 설정 `REVIEW_API_KEY` / `REVIEW_MODEL`은 검수용 Gemini 키·모델을 분리할 때 사용합니다. 현재 기본 검수 모델은 `gemini-2.5-flash`이며, 다른 회사의 AI와 교차 검수하는 구현은 아닙니다. 기술 검사는 Python·Pillow·FFmpeg가 별도로 수행합니다. AI 예외, 불명확한 판정, 누락된 검사 항목은 통과로 바꾸지 않습니다.
