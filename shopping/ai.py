@@ -31,7 +31,7 @@ class AI:
         for attempt in range(3):
             self.calls += 1
             if self.calls > self.limit:
-                raise GateError("AI request budget exceeded; no publication")
+                raise AIUnavailable("AI request budget exceeded; no publication")
             try:
                 response = requests.post(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",

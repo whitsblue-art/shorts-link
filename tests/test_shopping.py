@@ -12,7 +12,8 @@ from unittest.mock import Mock, patch
 
 from PIL import Image
 
-from shopping.core import GateError, Journal, fingerprint, require_pass
+from shopping.core import GateError, AIUnavailable, Journal, fingerprint, require_pass
+from shopping.ai import AI
 from shopping.coupang import authorization, normalize_product, Coupang, PREFIX
 from shopping.catalogue import make_entry, merge_products, verify_live
 from shopping.channel import resolve_channel, public_channel
@@ -43,6 +44,24 @@ def episode():
 
 
 class ShoppingTests(unittest.TestCase):
+    def test_quota_failure_stops_without_retrying_or_approving(self):
+        response=Mock(status_code=429)
+        with patch.dict(os.environ, {"GEMINI_API_KEY":"test-only-key"}), patch('shopping.ai.requests.post',return_value=response) as post, patch('shopping.ai.time.sleep') as sleep:
+            with self.assertRaises(AIUnavailable):
+                AI().json('test')
+            self.assertEqual(post.call_count,1)
+            sleep.assert_not_called()
+
+    def test_quota_failure_does_not_become_product_rejection(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory=Path(temp)
+            def save(url,target,**kwargs):
+                Image.new('RGB',(400,400),'white').save(target)
+            candidates=[{'url':'https://example.org/a.jpg','type':'image','publication_allowed':True}]
+            with patch('shopping.assets.save_image',side_effect=save), patch('shopping.assets.discover',return_value=candidates), patch('shopping.assets.validate_product_media',side_effect=AIUnavailable('quota')):
+                with self.assertRaises(AIUnavailable):
+                    assets.collect(Mock(),product(),[],{},directory)
+            self.assertFalse((directory/'assets.json').exists())
     def test_malformed_registered_token_rejects_without_logging_value(self):
         for raw in ('C:/private/shopping_youtube_token.json', '{"refresh_token":"private-value"'):
             with patch.dict(os.environ, {"SHOPPING_YOUTUBE_TOKEN_JSON": raw}):

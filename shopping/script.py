@@ -1,7 +1,7 @@
 import json
 import re
 
-from .core import GateError, atomic_json, normalize
+from .core import GateError, AIUnavailable, atomic_json, normalize
 
 
 FORBIDDEN = ("최저가", "100%", "무조건", "완벽하게", "제가 써", "직접 써", "직접 사용", "완치", "치료")
@@ -75,6 +75,8 @@ def generate(ai, product, number, assets, directory):
             atomic_json(directory / "script_review.json", review)
             atomic_json(directory / "meta.json", meta)
             return meta
+        except AIUnavailable:
+            raise
         except GateError as exc:
             if attempt:
                 raise
