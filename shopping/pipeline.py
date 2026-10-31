@@ -25,6 +25,8 @@ def output(**values):
 
 
 def verified_files(episode, directory):
+    if episode.get('qa_provider') != 'openai' or episode.get('qa_version') != 2:
+        raise GateError('This episode requires the current OpenAI verification gates before release')
     for name, expected in episode.get("asset_hashes", {}).items():
         path = directory / name
         if Path(name).name != name or not path.is_file() or fingerprint(path.read_bytes()) != expected:
@@ -35,8 +37,11 @@ def verified_files(episode, directory):
 
 def prepare_episode(ai, ledger, episode, assets, settings, directory):
     meta_path = directory / "meta.json"
-    meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else script.generate(
-        ai, episode["product"], episode["catalogue_id"], assets, directory)
+    if meta_path.exists():
+        meta=json.loads(meta_path.read_text(encoding='utf-8'))
+        atomic_json(directory/'script_review.json',script.review(ai,episode['product'],episode['catalogue_id'],meta))
+    else:
+        meta=script.generate(ai,episode['product'],episode['catalogue_id'],assets,directory)
     script.validate(meta, episode["catalogue_id"])
     meta["product_title"] = episode["product"]["title"]
     base = settings["catalogue_base_url"].rstrip("/") + "/"
@@ -52,7 +57,7 @@ def prepare_episode(ai, ledger, episode, assets, settings, directory):
     names = ["final_shorts.mp4", "thumbnail.jpg", "meta.json", "assets.json", "reference.jpg"]
     names += [f"scene_{n:02d}.jpg" for n in range(1, 4)]
     hashes = {name: fingerprint((directory / name).read_bytes()) for name in names}
-    ledger.update(episode, status="verified", qa_passed=True, meta=meta,
+    ledger.update(episode, status="verified", qa_passed=True, qa_provider='openai',qa_version=2,meta=meta,
         publication_allowed=all(a.get("publication_allowed") is True for a in assets),
         poster_hashes=[hashes[f"scene_{n:02d}.jpg"] for n in range(1, 4)], asset_hashes=hashes,
         video_sha256=hashes[final.name], thumbnail_sha256=hashes[thumbnail.name], signal=signal,
@@ -79,7 +84,7 @@ def prepare(ledger, settings, publish):
         directory.mkdir(parents=True, exist_ok=True)
         if not (directory / "assets.json").exists():
             restore(ledger, pending, directory)
-        if pending.get("qa_passed"):
+        if pending.get("qa_passed") and pending.get('qa_provider') == 'openai' and pending.get('qa_version') == 2:
             verified_files(pending, directory)
             if publish and pending.get("publication_allowed") is not True:
                 assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
@@ -93,9 +98,24 @@ def prepare(ledger, settings, publish):
                 ledger.update(pending, publication_allowed=True)
             return pending
         assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
-        prepare_episode(AI(), ledger, pending, assets, settings, directory)
+        ai=AI(ROOT/'current_episode/ai_usage.json')
+        from .assets import validate_product_media
+        for asset in assets:
+            frames=[directory/asset['poster']]
+            if asset['kind']=='video':
+                from .core import run
+                length=media.duration(directory/asset['clip'])
+                frames=[]
+                for n,at in enumerate((.05,length/2,length-.1)):
+                    frame=directory/f'recheck_{asset["poster"]}_{n}.jpg'
+                    run(['ffmpeg','-v','error','-y','-ss',str(at),'-i',str(directory/asset['clip']),'-frames:v','1',str(frame)])
+                    frames.append(frame)
+            asset['review']=validate_product_media(ai,pending['product'],directory/'reference.jpg',
+                frames,asset.get('source_title',''))
+        atomic_json(directory/'assets.json',assets)
+        prepare_episode(ai, ledger, pending, assets, settings, directory)
         return pending
-    api, ai = Coupang(), AI()
+    api, ai = Coupang(), AI(ROOT/'current_episode/ai_usage.json')
     products = read_products(ledger)
     failures, attempted = [], set()
     maximum = min(8, max(1, int(settings.get("max_products_per_run", 4))))

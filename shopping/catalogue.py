@@ -38,7 +38,8 @@ def read_products(ledger):
 
 
 def make_entry(episode, meta, base_url):
-    if episode.get("qa_passed") is not True or len(meta.get("scenes", [])) != 3:
+    if (episode.get("qa_passed") is not True or len(meta.get("scenes", [])) != 3
+            or episode.get('qa_provider') != 'openai' or episode.get('qa_version') != 2):
         raise GateError("Only a complete verified video can enter the catalog")
     base_url = base_url.rstrip("/") + "/"
     if urlparse(base_url).scheme != "https":

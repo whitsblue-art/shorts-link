@@ -40,13 +40,13 @@ def meta():
 
 def episode():
     return {"id": "a" * 24, "catalogue_id": 15, "format": "shorts", "product": product(), "meta": meta(),
-        "qa_passed": True, "publication_allowed": True, "status": "verified", "poster_hashes": ["a", "b", "c"]}
+        "qa_passed": True, "qa_provider":"openai", "qa_version":2, "publication_allowed": True, "status": "verified", "poster_hashes": ["a", "b", "c"]}
 
 
 class ShoppingTests(unittest.TestCase):
     def test_quota_failure_stops_without_retrying_or_approving(self):
         response=Mock(status_code=429)
-        with patch.dict(os.environ, {"GEMINI_API_KEY":"test-only-key"}), patch('shopping.ai.requests.post',return_value=response) as post, patch('shopping.ai.time.sleep') as sleep:
+        with patch.dict(os.environ, {"OPENAI_API_KEY":"test-only-key"}), patch('shopping.ai.requests.post',return_value=response) as post, patch('shopping.ai.time.sleep') as sleep:
             with self.assertRaises(AIUnavailable):
                 AI().json('test')
             self.assertEqual(post.call_count,1)

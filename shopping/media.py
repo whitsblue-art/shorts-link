@@ -152,6 +152,10 @@ def generate_voices(ai, meta, kind, directory):
         prior = json.loads(report_path.read_text(encoding="utf-8")) if report_path.is_file() else {}
         narration_hash = fingerprint(scene["narration"])
         reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 1
+                    and prior.get('speech',{}).get('provider') == 'openai'
+                    and prior.get('speech',{}).get('review_version') == 2
+                    and prior.get('speech',{}).get('transcribe_model') == ai.transcribe_model
+                    and prior.get('speech',{}).get('semantic_review',{}).get('review_model') == ai.audio_review_model
                     and prior.get("narration_sha256") == narration_hash
                     and prior.get("speech", {}).get("sha256") == fingerprint(clean.read_bytes())
                     and prior.get("speech", {}).get("semantic_review", {}).get("verdict") == "PASS")

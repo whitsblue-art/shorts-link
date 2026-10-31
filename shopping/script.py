@@ -39,6 +39,14 @@ def validate(meta, number):
     return meta
 
 
+def review(ai, product, number, meta):
+    return ai.judge('Audit this advertisement against ONLY the affiliate product title. Every feature must '
+        'be supported; reject invented performance, compatibility, pricing, health benefits or personal testing. '
+        'Check the exact profile/catalog number.\n' + json.dumps({'product_title':product['title'],
+            'catalog_number':number,'script':meta},ensure_ascii=False),
+        ['supported_claims','no_fake_testimonial','truthful_hook','correct_catalog_cta'])
+
+
 def generate(ai, product, number, assets, directory):
     string = {"type": "STRING"}
     scene = {"type": "OBJECT", "required": ["scene_num", "narration", "badge", "hook", "sub", "visual_prompt"],
@@ -65,14 +73,10 @@ def generate(ai, product, number, assets, directory):
         atomic_json(directory / f"script_draft_{attempt+1}.json", meta)
         try:
             validate(meta, number)
-            review = ai.judge("Audit the advertisement against ONLY this actual affiliate product title. "
-                "Every asserted feature must be in the title; no fake personal testing or reviews, no invented "
-                "compatibility, performance, price comparison or health benefit. CTA/catalog number must be exact.\n"
-                + json.dumps({"product_title": product["title"], "catalog_number": number, "script": meta}, ensure_ascii=False),
-                ["supported_claims", "no_fake_testimonial", "truthful_hook", "correct_catalog_cta"])
+            verdict = review(ai, product, number, meta)
             for row, asset in zip(meta["scenes"], assets):
                 row["media_kind"] = asset["kind"]
-            atomic_json(directory / "script_review.json", review)
+            atomic_json(directory / "script_review.json", verdict)
             atomic_json(directory / "meta.json", meta)
             return meta
         except AIUnavailable:

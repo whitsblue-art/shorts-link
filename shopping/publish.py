@@ -137,6 +137,8 @@ class Publisher:
                             "Check Studio, rerun later, or use resolve_video_id for the matching video")
         if episode["status"] != "verified" or episode.get("qa_passed") is not True:
             raise GateError("Publication requires all QA gates to pass")
+        if episode.get('qa_provider') != 'openai' or episode.get('qa_version') != 2:
+            raise GateError('Current OpenAI review receipt is required before uploading')
         if not path or not Path(path).is_file() or fingerprint(Path(path).read_bytes()) != episode.get("video_sha256"):
             raise GateError("Video changed after verification or is missing")
         body = {"snippet": {"title": meta["title"], "description": meta["upload_description"],

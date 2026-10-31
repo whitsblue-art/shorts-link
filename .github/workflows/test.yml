@@ -1,7 +1,7 @@
 name: Shopping pipeline tests
 on:
   push:
-    branches: [main, shopping/verified-pipeline-20261031]
+    branches: [main, shopping/verified-pipeline-20261031, shopping/openai-migration-20261031]
     paths: ['shopping/**', 'tests/**', 'main.py', 'video_maker.py', 'requirements.txt', '.github/workflows/test.yml', '.github/workflows/auto.yml']
   pull_request:
   workflow_dispatch:

@@ -147,14 +147,13 @@ def discover(ai, product, siblings, settings, directory):
     except (GateError, requests.RequestException, OSError, ValueError):
         pass
     try:
-        result = ai.call(ai.text_model, [{"text": "Find original publicly accessible overseas user demonstrations "
+        result = ai.search("Find original publicly accessible overseas user demonstrations "
             "and manufacturer/seller media pages for this EXACT product, not generic examples. Include Xiaohongshu "
             "if relevant and official product pages. Do not invent URLs or substitute another model/color. "
-            "Return original source pages with citations. Product: " + product["title"]}], tools=[{"googleSearch": {}}])
-        grounding = result.get("groundingMetadata", {})
-        atomic_json(directory / "media_search.json", {"grounding": grounding, "briefing": ai.text(result)})
-        for chunk in grounding.get("groundingChunks", [])[:5]:
-            page = chunk.get("web", {}).get("uri")
+            "Return original source pages with citations. Product: " + product["title"])
+        atomic_json(directory / "media_search.json", result)
+        for source in result.get("sources", [])[:5]:
+            page = source.get("url")
             if not page:
                 continue
             try:
@@ -163,13 +162,13 @@ def discover(ai, product, siblings, settings, directory):
                     continue
                 approved = allowed_source(resolved, settings.get("approved_review_url_prefixes", []))
                 for item in parse_page(body, resolved):
-                    candidates.append({**item, "source_url": resolved, "source_title": chunk.get("web", {}).get("title", ""),
+                    candidates.append({**item, "source_url": resolved, "source_title": source.get("title", ""),
                                        "publication_allowed": approved})
             except (GateError, requests.RequestException, OSError, ValueError):
                 continue
     except GateError as exc:
         atomic_json(directory / "search_failure.json", {"error": str(exc)})
-        if isinstance(exc, AIUnavailable) and "429" in str(exc):
+        if isinstance(exc, AIUnavailable):
             raise
     # Official affiliate API images are the fallback, not unrelated stock photos.
     for row in [product] + siblings:
@@ -245,6 +244,15 @@ def collect(ai, product, siblings, settings, directory, for_publication=False):
                 number = len(approved) + 1
                 image = directory / f"scene_{number:02d}.jpg"
                 save_image(url, image)
+                if candidate.get('crop'):
+                    with Image.open(image) as original:
+                        box = candidate['crop']
+                        if (not isinstance(box,list) or len(box)!=4 or any(type(n) is not int for n in box)
+                                or not (0<=box[0]<box[2]<=original.width and 0<=box[1]<box[3]<=original.height)
+                                or min(box[2]-box[0],box[3]-box[1])<350):
+                            raise GateError('Invalid source-photo crop')
+                        cropped=original.crop(box)
+                    cropped.save(image,'JPEG',quality=95)
                 dhash = image_hash(image)
                 if any((dhash ^ old).bit_count() <= 5 for old in hashes):
                     continue

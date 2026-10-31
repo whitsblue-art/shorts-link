@@ -16,9 +16,7 @@ jobs:
     timeout-minutes: 75
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      REVIEW_API_KEY: ${{ secrets.REVIEW_API_KEY || secrets.GEMINI_API_KEY }}
-      REVIEW_MODEL: ${{ vars.REVIEW_MODEL || 'gemini-2.5-flash' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
       COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
     steps:
@@ -35,7 +33,7 @@ jobs:
       - name: Prepare reusable product media and reviewed video only
         # --publish selects reusable sources; --prepare does not publish anything.
         # No YouTube credential, catalog registration or release step is provided.
-        run: python main.py --prepare --publish
+        run: python main.py --prepare
       - name: Save preview and verification evidence
         if: always()
         uses: actions/upload-artifact@v4

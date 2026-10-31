@@ -13,26 +13,13 @@ from .channel import public_channel
 
 def main():
     results = []
-    key = os.getenv("GEMINI_API_KEY", "").strip()
-    if key:
-        try:
-            response = requests.get("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash",
-                                    headers={"x-goog-api-key": key}, timeout=(15, 30))
-            results.append({"check": "Gemini API", "ok": response.status_code == 200,
-                            "detail": f"HTTP {response.status_code}"})
-            if response.status_code == 200:
-                generated = requests.post('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent',
-                    headers={"x-goog-api-key": key}, json={"contents":[{"parts":[{"text":"Reply with OK only."}]}],
-                        "generationConfig":{"maxOutputTokens":32,"thinkingConfig":{"thinkingBudget":0}}}, timeout=(15,45))
-                detail = f"Tiny generation request HTTP {generated.status_code}; image/audio QA is separate"
-                if generated.status_code == 429:
-                    message = str(generated.json().get('error',{}).get('message','')).lower()
-                    detail = "Project monthly spending cap reached" if 'spending cap' in message else "Generation rate/quota limit reached"
-                results.append({"check":"Gemini generation capability","ok":generated.status_code == 200,"detail":detail})
-        except requests.RequestException:
-            results.append({"check": "Gemini API", "ok": False, "detail": "Network failure"})
-    else:
-        results.append({"check": "Gemini API", "ok": False, "detail": "GEMINI_API_KEY secret missing"})
+    try:
+        from .ai import AI
+        ai=AI()
+        result=ai.json('Connection check only: return {"ok":true}.',schema={"type":"OBJECT","properties":{"ok":{"type":"BOOLEAN"}}})
+        results.append({"check":"OpenAI structured generation","ok":result.get("ok") is True,"detail":"Authenticated Responses API and JSON contract passed; full media QA is separate"})
+    except GateError as exc:
+        results.append({"check":"OpenAI structured generation","ok":False,"detail":str(exc)})
     try:
         api = Coupang()
         product = api.search("코브라 수전 헤드", limit=1)[0]

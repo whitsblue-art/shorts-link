@@ -1,54 +1,31 @@
-name: Shopping generation capability check
+name: OpenAI capability check
 on:
   push:
-    branches: [main]
-    paths: ['.github/workflows/shopping_model_probe.yml']
+    branches: [main, shopping/openai-migration-20261031]
+    paths: ['.github/workflows/shopping_model_probe.yml', 'shopping/openai_probe.py']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  models:
+  openai:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MAX_AI_REQUESTS: '12'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install requests==2.32.5
-      - name: Test generation, not only API-key validity
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: |
-          python - <<'PY'
-          import os,json,re,requests
-          from pathlib import Path
-          key=os.environ['GEMINI_API_KEY']
-          headers={'x-goog-api-key':key}
-          response=requests.get('https://generativelanguage.googleapis.com/v1beta/models',headers=headers,timeout=(10,30))
-          response.raise_for_status()
-          names=[m['name'].split('/')[-1] for m in response.json().get('models',[]) if 'generateContent' in m.get('supportedGenerationMethods',[])]
-          print('AVAILABLE_MODELS='+json.dumps(names),flush=True)
-          reports=[]
-          for model in ['gemini-3-flash-preview','gemini-3.8-flash','gemma-4-31b-it']:
-              if model not in names: continue
-              r=requests.post('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',headers=headers,json={'contents':[{'parts':[{'text':'Reply with OK only.'}]}],'generationConfig':{'maxOutputTokens':32}},timeout=(10,40))
-              row={'model':model,'http':r.status_code,'quota':[]}
-              if r.status_code>=400:
-                  message=str(r.json().get('error',{}).get('message','')).replace(key,'[redacted]')
-                  row['error_message']=re.sub(r'AIza[A-Za-z0-9_-]+','[redacted]',message)[:600]
-              if r.status_code==429:
-                  for detail in r.json().get('error',{}).get('details',[]):
-                      for v in detail.get('violations',[]):
-                          row['quota'].append({k:v.get(k) for k in ['quotaMetric','quotaId','quotaValue','quotaDimensions']})
-              reports.append(row)
-              print('GENERATION_CAPABILITY='+json.dumps(row),flush=True)
-          Path('model_diagnostics').mkdir(exist_ok=True)
-          Path('model_diagnostics/report.json').write_text(json.dumps(reports,indent=2))
-          PY
+          cache: pip
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-nanum
+      - run: python -m pip install -r requirements.txt
+      - name: Real text, vision, search and original-audio checks
+        run: python -m shopping.openai_probe
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: shopping-generation-report
-          path: model_diagnostics/
+          name: openai-capabilities-${{ github.run_id }}-${{ github.run_attempt }}
+          path: current_episode/
           retention-days: 7

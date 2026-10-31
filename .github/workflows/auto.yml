@@ -30,9 +30,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      REVIEW_API_KEY: ${{ secrets.REVIEW_API_KEY || secrets.GEMINI_API_KEY }}
-      REVIEW_MODEL: ${{ vars.REVIEW_MODEL || 'gemini-2.5-flash' }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       COUPANG_ACCESS_KEY: ${{ secrets.COUPANG_ACCESS_KEY }}
       COUPANG_SECRET_KEY: ${{ secrets.COUPANG_SECRET_KEY }}
       SHOPPING_CHANNEL_URL: ${{ vars.SHOPPING_CHANNEL_URL }}
