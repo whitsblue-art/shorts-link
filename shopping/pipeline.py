@@ -9,7 +9,7 @@ from .ai import AI
 from .artifacts import restore
 from .assets import collect, allowed_source
 from .catalogue import read_products, register, export_site, verify_live
-from .core import GateError, ROOT, atomic_json, fingerprint
+from .core import GateError, AIUnavailable, ROOT, atomic_json, fingerprint
 from .coupang import Coupang
 from . import design, media, script
 from .publish import Publisher
@@ -113,6 +113,8 @@ def prepare(ledger, settings, publish):
                 product["affiliate_link"] = api.deeplink(product)
                 atomic_json(eid_dir / "product.json", product)
                 assets = collect(ai, product, siblings, settings, eid_dir, for_publication=publish)
+            except AIUnavailable:
+                raise
             except GateError as exc:
                 failures.append({"product_id": product["product_id"], "error": str(exc)})
                 atomic_json(ROOT / "current_episode" / "selection_failures.json", failures)

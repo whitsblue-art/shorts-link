@@ -7,7 +7,7 @@ import re
 import time
 import requests
 from PIL import Image
-from .core import GateError, atomic_json, fingerprint, normalize, require_pass, utc_now
+from .core import GateError, AIUnavailable, atomic_json, fingerprint, normalize, require_pass, utc_now
 
 class AI:
     def __init__(self):
@@ -39,10 +39,13 @@ class AI:
                     json=body, timeout=(15, 180))
             except requests.RequestException:
                 if attempt == 2:
-                    raise GateError("AI network failure; no approval") from None
+                    raise AIUnavailable("AI network failure; no approval") from None
                 time.sleep(2 ** attempt)
                 continue
-            if response.status_code in (429, 500, 502, 503, 504) and attempt < 2:
+            if response.status_code == 429:
+                # Stop the run rather than trying every product against exhausted quota.
+                raise AIUnavailable(f"AI model {model} rate/quota limited (HTTP 429); no product was rejected by this error")
+            if response.status_code in (500, 502, 503, 504) and attempt < 2:
                 try:
                     delay = float(response.headers.get("Retry-After", 10 if response.status_code == 429 else 2 ** attempt))
                 except (TypeError, ValueError):
@@ -51,7 +54,7 @@ class AI:
                 continue
             if response.status_code >= 400:
                 # Keys and raw service errors must never be printed to artifacts.
-                raise GateError(f"AI model {model} failed (HTTP {response.status_code})")
+                raise AIUnavailable(f"AI model {model} failed (HTTP {response.status_code})")
             result = response.json()
             candidate = (result.get("candidates") or [{}])[0]
             if candidate.get("finishReason") != "STOP":

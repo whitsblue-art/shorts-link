@@ -18,6 +18,10 @@ class GateError(RuntimeError):
     """A required quality or publication gate did not pass."""
 
 
+class AIUnavailable(GateError):
+    """A service/quota failure, never evidence that a product failed review."""
+
+
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
 

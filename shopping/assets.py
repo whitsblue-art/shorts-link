@@ -16,7 +16,7 @@ from PIL import Image, ImageOps
 import requests
 
 from .ai import image_part
-from .core import GateError, ROOT, atomic_json, fingerprint, run
+from .core import GateError, AIUnavailable, ROOT, atomic_json, fingerprint, run
 from .media import image_hash, probe
 
 BAD_IMAGES = ("1584622650111", "1556911220")
@@ -169,6 +169,8 @@ def discover(ai, product, siblings, settings, directory):
                 continue
     except GateError as exc:
         atomic_json(directory / "search_failure.json", {"error": str(exc)})
+        if isinstance(exc, AIUnavailable) and "429" in str(exc):
+            raise
     # Official affiliate API images are the fallback, not unrelated stock photos.
     for row in [product] + siblings:
         candidates.append({"url": row["reference_image"], "type": "image", "source_url": row["canonical_url"],
@@ -250,6 +252,8 @@ def collect(ai, product, siblings, settings, directory, for_publication=False):
                 approved.append({**candidate, "kind": "image", "poster": image.name, "review": report})
                 hashes.append(dhash)
             attempts.append({"url": url, "outcome": "checked"})
+        except AIUnavailable:
+            raise
         except (GateError, requests.RequestException, OSError, ValueError, KeyError) as exc:
             attempts.append({"url": url, "outcome": "rejected", "error": str(exc)[:500] if isinstance(exc, GateError) else type(exc).__name__})
         if len(approved) == 3:
