@@ -8,6 +8,7 @@ import requests
 
 from .core import GateError, ROOT, atomic_json
 from .coupang import Coupang
+from .channel import public_channel
 
 
 def main():
@@ -31,10 +32,26 @@ def main():
     except GateError as exc:
         results.append({"check": "Coupang affiliate API", "ok": False, "detail": str(exc)})
     shopping_token = os.getenv("SHOPPING_YOUTUBE_TOKEN_JSON", "").strip()
-    target = os.getenv("SHOPPING_CHANNEL_URL", "").strip()
-    results.append({"check": "Shopping channel configuration", "ok": bool(shopping_token and target),
-        "detail": "Shopping token and target set" if shopping_token and target else
-                  "Set SHOPPING_YOUTUBE_TOKEN_JSON secret and SHOPPING_CHANNEL_URL variable"})
+    config = json.loads((ROOT / "shopping_config.json").read_text(encoding="utf-8"))
+    target = os.getenv("SHOPPING_CHANNEL_URL", "").strip() or config.get("shopping_channel_url", "")
+    try:
+        identity = public_channel(target)
+        expected = config.get("shopping_channel_name")
+        if expected and identity["title"] != expected:
+            raise GateError("Public channel name does not match the configured shopping channel")
+        results.append({"check": "Public shopping channel", "ok": True, "detail": identity})
+    except (GateError, ValueError) as exc:
+        results.append({"check": "Public shopping channel", "ok": False, "detail": str(exc)})
+    if shopping_token:
+        try:
+            from .check_channel import main as check_channel
+            check_channel()
+            results.append({"check": "Shopping channel authorization", "ok": True, "detail": "OAuth channel matches the intended destination"})
+        except Exception:
+            results.append({"check": "Shopping channel authorization", "ok": False, "detail": "OAuth/target verification failed; no credentials logged"})
+    else:
+        results.append({"check": "Shopping channel authorization", "ok": False,
+            "detail": "SHOPPING_YOUTUBE_TOKEN_JSON secret missing"})
     output = ROOT / "current_episode"
     atomic_json(output / "connection_report.json", results)
     lines = ["## 쇼핑 자동화 연결 검사", "", "영상 생성·카탈로그 변경·유튜브 업로드를 하지 않는 검사입니다.", ""]
