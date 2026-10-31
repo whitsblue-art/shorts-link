@@ -23,12 +23,84 @@
         "is_rocket": true,
         "affiliate_link": "https://link.coupang.com/a/iiy862svaC"
       },
-      "status": "reserved",
+      "status": "verified",
       "created_at": "2026-10-31T12:43:33.963655+00:00",
-      "artifact_run_id": "41202284409",
+      "artifact_run_id": "41202521635",
       "artifact_run_attempt": "1",
-      "updated_at": "2026-10-31T12:43:35.121118+00:00"
+      "updated_at": "2026-10-31T12:47:34.805337+00:00",
+      "qa_passed": true,
+      "qa_provider": "openai",
+      "qa_version": 2,
+      "meta": {
+        "title": "주방수전 찾으세요? 아토젯 코브라형과 헤드필터 6p 구성 확인",
+        "description": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트 소개입니다. 구매 시 수수료를 받을 수 있는 제휴 링크입니다. 호환 여부와 상세 정보는 연결된 상품 페이지에서 확인해 주세요.",
+        "thumbnail_text": "코브라형 수전, 구성부터 확인",
+        "scenes": [
+          {
+            "scene_num": 1,
+            "narration": "주방수전을 찾고 계신데 어떤 구성인지부터 궁금하셨나요? 아토젯 클렌징 주방수전 코브라형을 살펴보세요. 설치할 곳에 맞는지는 상품 페이지에서 확인해 주세요.",
+            "badge": "추천 꿀템 NO.15",
+            "hook": "주방수전, 구성부터 보세요",
+            "sub": "호환 정보는 상세페이지",
+            "visual_prompt": "An affiliate shopping introduction featuring the actual Atोजet Cleansing cobra-type kitchen faucet from the linked product listing, beside a kitchen sink. Product appearance is shown only through the listing's actual product imagery, without water-flow demonstrations or performance comparisons.",
+            "media_kind": "image"
+          },
+          {
+            "scene_num": 2,
+            "narration": "상품명에 안내된 구성은 아토젯 클렌징 주방수전 코브라형과 헤드필터 육 개, 한 세트입니다. 크기와 설치 조건 등 자세한 정보는 연결된 상품 페이지에서 확인해 주세요.",
+            "badge": "상품명 기준 구성",
+            "hook": "코브라형 + 헤드필터 6p",
+            "sub": "1세트 구성 확인",
+            "visual_prompt": "The actual Atojet Cleansing cobra-type kitchen faucet and six head filters, presented using the linked listing's product imagery in a clean catalog layout. Concise labels identify the cobra-type faucet, six head filters, and one-set configuration; no dimensions or performance graphics appear.",
+            "media_kind": "image"
+          },
+          {
+            "scene_num": 3,
+            "narration": "이 구성이 궁금하시다면 프로필 링크에서 15번 검색해 주세요. 연결된 상품 페이지에서 호환 여부와 상세 정보를 확인하신 뒤 선택해 주세요. 구매 시 수수료를 받을 수 있습니다.",
+            "badge": "상품 정보 확인",
+            "hook": "프로필에서 15번 확인",
+            "sub": "프로필 링크에서 [15번] 검색!",
+            "visual_prompt": "A profile catalog context with entry number 15 displaying the actual linked listing image of the Atojet Cleansing cobra-type kitchen faucet with six head filters, one set. The product card sits beside a concise affiliate disclosure, with no price, ratings, stock status, or performance claims.",
+            "media_kind": "image"
+          }
+        ],
+        "product_title": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트",
+        "upload_description": "쿠팡 파트너스 활동으로 일정액의 수수료를 제공받습니다.\n\n아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트 소개입니다. 구매 시 수수료를 받을 수 있는 제휴 링크입니다. 호환 여부와 상세 정보는 연결된 상품 페이지에서 확인해 주세요.\n\n상품 정보: 채널 프로필 링크에서 [15번] 검색\nhttps://whitsblue-art.github.io/shorts-link/\n가격·옵션·호환 여부는 상품 페이지에서 확인하세요.\n#Shorts #쿠팡파트너스 #생활용품"
+      },
+      "publication_allowed": false,
+      "poster_hashes": [
+        "3655637c2b04ef480fc7f686cda534010aa1ec0a2750e9287407ca8b1217587e",
+        "c1c0708430d89cfd6cc7a338fe5606850c21d18cc758978ad2998e33afa93567",
+        "6038745b332a77f309572a8914e13adb8e5cacfdf6f049c3c5bfbe843fdcbf96"
+      ],
+      "asset_hashes": {
+        "final_shorts.mp4": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf",
+        "thumbnail.jpg": "b012111c1cac07bc811bff2d2f386bf8c47a6b02d0422f3413414d40b73bc6f8",
+        "meta.json": "5f78f2568c9ec9c970c5ca17d363349e23d0e3a7be666dbd0370960e1ad1394a",
+        "assets.json": "566519787da26a41791f5c51a49c93cc1d30777452b47e599b98ca42259a2e18",
+        "reference.jpg": "ea6762e3cac9a4c7b3031375a71094c850f1029f6006053fa86dc59b348c075f",
+        "scene_01.jpg": "3655637c2b04ef480fc7f686cda534010aa1ec0a2750e9287407ca8b1217587e",
+        "scene_02.jpg": "c1c0708430d89cfd6cc7a338fe5606850c21d18cc758978ad2998e33afa93567",
+        "scene_03.jpg": "6038745b332a77f309572a8914e13adb8e5cacfdf6f049c3c5bfbe843fdcbf96"
+      },
+      "video_sha256": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf",
+      "thumbnail_sha256": "b012111c1cac07bc811bff2d2f386bf8c47a6b02d0422f3413414d40b73bc6f8",
+      "signal": {
+        "duration": 35.114,
+        "signal": {
+          "mean_db": -19.7,
+          "silences": [
+            0.878979,
+            0.8735,
+            0.904813,
+            0.873792,
+            0.877646
+          ],
+          "duration": 35.114
+        },
+        "sha256": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf"
+      }
     }
   },
-  "updated_at": "2026-10-31T12:46:05.452141+00:00"
+  "updated_at": "2026-10-31T12:47:34.805346+00:00"
 }
