@@ -131,20 +131,25 @@
           new Set(p.scenes.map(s => s.image)).size === 3);
         renderProducts(allProducts);
       } catch (e) {
-        console.error('상품 데이터를 불러오지 못했습니다:', e);
+        document.getElementById('productList').textContent = '상품 정보를 불러오지 못했습니다. 잠시 후 다시 확인해 주세요.';
       }
     }
 
     function renderProducts(products) {
       const list = document.getElementById('productList');
       list.innerHTML = '';
+      if (products.length === 0) {
+        list.textContent = '확인된 상품이 없습니다. 상품 번호를 다시 확인해 주세요.';
+        return;
+      }
       products.forEach(p => {
         const imgUrl = p.image;
         
         const card = document.createElement('a');
         let destination;
         try { destination = new URL(p.link); } catch { return; }
-        if (destination.protocol !== 'https:') return;
+        if (destination.protocol !== 'https:' ||
+            !(destination.hostname === 'coupang.com' || destination.hostname.endsWith('.coupang.com'))) return;
         card.href = destination.href;
         card.target = '_blank';
         card.rel = 'noopener noreferrer sponsored';
@@ -170,8 +175,9 @@
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
       const q = e.target.value.trim().toLowerCase();
+      const number = q.match(/^(?:no\.?\s*)?\[?\s*(\d+)\s*번?\s*\]?$/i);
       const filtered = allProducts.filter(p => 
-        String(p.id).includes(q) || (p.title && p.title.toLowerCase().includes(q))
+        number ? p.id === Number(number[1]) : (!q || (p.title && p.title.toLowerCase().includes(q)))
       );
       renderProducts(filtered);
     });
