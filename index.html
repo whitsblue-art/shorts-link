@@ -122,7 +122,13 @@
     async function loadProducts() {
       try {
         const res = await fetch('products.json?t=' + new Date().getTime());
-        allProducts = await res.json();
+        if (!res.ok) throw new Error('상품 데이터 요청 실패');
+        const data = await res.json();
+        allProducts = data.filter(p => p.verified === true &&
+          p.image && !/1584622650111|1556911220/.test(p.image) &&
+          Array.isArray(p.scenes) && p.scenes.length === 3 &&
+          p.scenes.every(s => s.image && !/1584622650111|1556911220/.test(s.image)) &&
+          new Set(p.scenes.map(s => s.image)).size === 3);
         renderProducts(allProducts);
       } catch (e) {
         console.error('상품 데이터를 불러오지 못했습니다:', e);
@@ -133,21 +139,31 @@
       const list = document.getElementById('productList');
       list.innerHTML = '';
       products.forEach(p => {
-        const imgUrl = p.image && p.image.trim() !== '' 
-          ? p.image 
-          : 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=300&auto=format&fit=crop&q=80';
+        const imgUrl = p.image;
         
         const card = document.createElement('a');
-        card.href = p.link || '#';
+        let destination;
+        try { destination = new URL(p.link); } catch { return; }
+        if (destination.protocol !== 'https:') return;
+        card.href = destination.href;
         card.target = '_blank';
+        card.rel = 'noopener noreferrer sponsored';
         card.className = 'product-card';
-        card.innerHTML = `
-          <img src="${imgUrl}" alt="${p.title}" class="product-img" onerror="this.src='https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=300&auto=format&fit=crop&q=80'">
-          <div class="product-info">
-            <span class="badge">NO. ${p.id}</span>
-            <div class="title">${p.title}</div>
-          </div>
-        `;
+        const image = document.createElement('img');
+        image.src = imgUrl;
+        image.alt = p.title;
+        image.className = 'product-img';
+        image.onerror = () => { image.hidden = true; };
+        const info = document.createElement('div');
+        info.className = 'product-info';
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = `NO. ${p.id}`;
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = p.title;
+        info.append(badge, title);
+        card.append(image, info);
         list.appendChild(card);
       });
     }

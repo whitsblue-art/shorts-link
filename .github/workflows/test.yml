@@ -1,0 +1,23 @@
+name: Shopping pipeline tests
+on:
+  push:
+    branches: [main, shopping/verified-pipeline-20261031]
+    paths: ['shopping/**', 'tests/**', 'main.py', 'video_maker.py', 'requirements.txt', '.github/workflows/test.yml', '.github/workflows/auto.yml']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-nanum
+      - run: python -m pip install -r requirements.txt
+      - run: python -m compileall -q main.py video_maker.py shopping tests
+      - run: python -m unittest discover -s tests -v

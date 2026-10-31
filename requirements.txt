@@ -1,0 +1,8 @@
+requests==2.32.5
+Pillow==11.3.0
+edge-tts==7.3.1
+beautifulsoup4==4.14.2
+google-api-python-client==2.185.0
+google-auth==2.41.1
+google-auth-oauthlib==1.2.2
+

@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+products.json.tmp
+videos/shorts_*/
+.local-state/
+current_episode/
+site/
+youtube_token*.json
+shopping_youtube_token*.json
+client_secret*.json

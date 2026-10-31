@@ -1,1 +1,3 @@
-print("main.py에서 통합 렌더링 완료!")
+if __name__ == "__main__":
+    print("Integrated in main.py")
+
