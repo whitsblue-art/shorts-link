@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "channel_id": null,
+  "plans": {},
+  "episodes": {
+    "5a3c8c9c238e594d726f37ca": {
+      "id": "5a3c8c9c238e594d726f37ca",
+      "format": "shorts",
+      "topic": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트",
+      "mode": "shopping",
+      "catalogue_id": 15,
+      "product": {
+        "product_id": "6258651162",
+        "title": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트",
+        "reference_image": "https://ads-partners.coupang.com/image1/1cIkE3BdYU4o60qI1d67GNTXIvlRh_AFqZKCHXYR5-RmLq_vsNWkU6yb93o5X-T2W7KQupsUfvifL-DlcpqeFQfJKxCbRhqN41OqSTsDGucM3dGqS_Iee0k1wh_eq3FOPbllUtO0qOOYPVEtPEqJ_dZXRqrCsHllipsuFts-gwqW-LC2NIgMy7H0g3qUo3e19ZBvB3hwC_lJYiisGeN6yDD8QMRSjGYzQ2ISRhl6IbkxGRARcTF9VFxHEEeuZZXmoiE4TBCQkm3QinW2O4RaG1-BicxI0hu6C06rAEci9mAW2gUsGfzGGG40uOS2IJEhwYxdaffWMHQdXcGftjpBKg9_eAeKcXmF_8W761wvoEOGuUjKHs4yLzOBMcOwPq2b3szQNzLevEG5pWtKlGjngN4QS1ya2NxI8jmYuKzudI6dfc5j3z72KbsqVhUkQTpcndOzeE4vDeKF86Yxh_hckZNNehJLsKpe9ekvsnljtIu5I37V1hPXJ7F3xoZLRl8oH_sNWQJ70w==",
+        "source_url": "https://link.coupang.com/re/AFFSDP?lptag=AF2291780&pageKey=6258651162&itemId=12729943685&vendorItemId=79996508718&traceid=V0-153-3899da530ebd2c06&clickBeacon=94f7ec40-d528-11f1-9499-9f5588ea8ebb%7E3&requestid=20261031214249970218374000&token=31850C%7CMIXED&pt=1&slot=1",
+        "canonical_url": "https://www.coupang.com/vp/products/6258651162?itemId=12729943685&vendorItemId=79996508718",
+        "price": 28900,
+        "category": "홈인테리어",
+        "is_rocket": true,
+        "affiliate_link": "https://link.coupang.com/a/iiy862svaC"
+      },
+      "status": "reserved",
+      "created_at": "2026-10-31T12:43:33.963655+00:00"
+    }
+  },
+  "updated_at": "2026-10-31T12:43:33.963664+00:00"
+}
