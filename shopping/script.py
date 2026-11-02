@@ -5,6 +5,7 @@ from .core import GateError, AIUnavailable, atomic_json, normalize
 from .ai import image_part, PRODUCT_IDENTITY_RULES
 
 STYLE_VERSION = 3
+SCRIPT_VERSION = 4
 
 
 def visual_evidence(meta, directory):
@@ -91,6 +92,10 @@ def generate(ai, product, number, assets, directory):
         'Write an engaging Korean real-use demonstration Short, about 20~27 seconds. Exactly three chapters, '
         'total 180~240 Korean characters, each 20~100 characters. Short conversational sentences, lively but not shouty. '
         'Hook with what the ACTUAL footage shows, then explain the visible action, then result and ONE brief final CTA. '
+        'Identify the object precisely at the start, then build curiosity about its visible use. '
+        'Explain what makes the demonstrated use interesting. Avoid dull play-by-play such as water flowing down, '
+        'listing left/middle/right, "보이지?", "모습도 보여", or repeating that the head is white. '
+        'Use concise, friendly Korean explainer narration with varied sentence lengths and smooth transitions. '
         'No polite catalogue lecture, no repeated 상세페이지/호환/구성 확인 filler. No fabricated viral trends, hidden uses, '
         'before-after results or performance. Match EACH narration to its labelled scene frames. '
         'A filter HEAD is not a whole faucet. Use precise everyday product nouns; do not merely recite the listing title. '
@@ -107,6 +112,7 @@ def generate(ai, product, number, assets, directory):
     for attempt in range(2):
         meta = ai.json(prompt + feedback, evidence, schema=schema)
         meta['style_version']=STYLE_VERSION
+        meta['script_version']=SCRIPT_VERSION
         for row, asset in zip(meta['scenes'],assets):
             row['media_kind']=asset['kind']
             row['media_fit']=asset.get('fit','cover')

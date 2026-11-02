@@ -8,6 +8,7 @@ from PIL import Image
 
 from shopping import script, media, assets
 from shopping.core import GateError
+from shopping.core import fingerprint,run
 
 
 def story():
@@ -21,6 +22,29 @@ def story():
 
 
 class UsageTests(unittest.TestCase):
+    def test_reviewed_clip_cannot_be_reused_after_modification(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'clip.mp4').write_bytes(b'checked clip');(root/'poster.jpg').write_bytes(b'checked frame')
+            asset={'clip':'clip.mp4','poster':'poster.jpg','review':{'provider':'openai','review_version':3,'verdict':'PASS'},
+                   'reviewed_files':{n:fingerprint((root/n).read_bytes()) for n in ['clip.mp4','poster.jpg']}}
+            self.assertTrue(assets.reviewed_asset_matches(asset,root))
+            (root/'clip.mp4').write_bytes(b'other clip')
+            self.assertFalse(assets.reviewed_asset_matches(asset,root))
+
+    def test_pause_compaction_preserves_spoken_sections_and_retimes_captions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)/'voice.mp3'
+            run(['ffmpeg','-v','error','-y','-f','lavfi','-i','sine=frequency=440:duration=1',
+                 '-f','lavfi','-i','anullsrc=r=48000:cl=mono:d=2','-f','lavfi','-i','sine=frequency=660:duration=1',
+                 '-filter_complex','[0:a][1:a][2:a]concat=n=3:v=0:a=1[a]','-map','[a]',str(path)])
+            boundaries=[{'text':'앞','start':.1,'end':.9},{'text':'뒤','start':3.1,'end':3.9}]
+            shifted,report=media.compact_voice_pauses(path,boundaries)
+            self.assertGreater(report['removed_seconds'],1.5)
+            self.assertAlmostEqual(shifted[1]['start'],3.1-report['removed_seconds'],places=3)
+            self.assertEqual([b['text'] for b in shifted],['앞','뒤'])
+            self.assertGreater(media.duration(path),2.2)
+            media.audio_quality(path)
+
     def test_odd_sized_animated_source_is_encoded_without_losing_motion(self):
         frames=[Image.new('RGB',(401,401),color) for color in ('white','black','red')]
         data=BytesIO();frames[0].save(data,format='GIF',save_all=True,append_images=frames[1:],duration=500,loop=0)

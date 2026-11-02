@@ -155,7 +155,7 @@ def generate_voices(ai, meta, kind, directory):
             'rate':os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'),'version':3})
         signature_path=directory/f'synthesis_{number:02d}.json'
         signature=json.loads(signature_path.read_text(encoding='utf-8')) if signature_path.exists() else {}
-        reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 1
+        reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 2
                     and prior.get('speech',{}).get('provider') == 'openai'
                     and prior.get('speech',{}).get('review_version') == 3
                     and prior.get('speech',{}).get('transcribe_model') == ai.transcribe_model
@@ -177,12 +177,42 @@ def generate_voices(ai, meta, kind, directory):
             validate_boundaries(raw_boundaries, scene["narration"], duration(raw))
             atomic_json(raw_timing_path, raw_boundaries)
             boundaries, trim_report = trim_voice_edges(raw, clean, raw_boundaries)
+            if kind=='shorts':
+                boundaries,pace=compact_voice_pauses(clean,boundaries)
+                trim_report={**trim_report,'version':2,'pause_compaction':pace}
             atomic_json(timing_path, boundaries)
         validate_boundaries(boundaries, scene["narration"], duration(clean))
         report = prior if reusable else {"signal": audio_quality(clean), "speech": review_audio(ai, clean, scene["narration"])}
         atomic_json(report_path, {**report, "narration_sha256": narration_hash, "edge_trim": trim_report})
         times.append(boundaries)
     return times
+
+
+def compact_voice_pauses(path,boundaries):
+    """Remove only centres of detected long silence; map every timestamp to the edit."""
+    log=run(['ffmpeg','-hide_banner','-i',str(path),'-af','silencedetect=noise=-45dB:d=0.7','-f','null','-']).stderr
+    cuts=[];start=None
+    for kind,value in re.findall(r'silence_(start|end): ([\d.]+)',log):
+        value=float(value)
+        if kind=='start':start=value
+        elif start is not None:
+            if start>.05 and value<duration(path)-.05 and value-start>.7:
+                cuts.append((start+.16,value-.16))
+            start=None
+    if not cuts:return boundaries,{'removed_seconds':0,'cuts':[]}
+    total=duration(path);segments=[];at=0
+    for first,last in cuts:
+        segments.append((at,first));at=last
+    segments.append((at,total))
+    split='[0:a]asplit='+str(len(segments))+''.join(f'[s{i}]' for i in range(len(segments)))+';'
+    filters=split+';'.join(f'[s{i}]atrim=start={a:.6f}:end={b:.6f},asetpts=PTS-STARTPTS[t{i}]' for i,(a,b) in enumerate(segments))+';'
+    filters+=''.join(f'[t{i}]' for i in range(len(segments)))+f'concat=n={len(segments)}:v=0:a=1[out]'
+    paced=path.with_name(path.stem+'_paced.mp3')
+    run(['ffmpeg','-v','error','-y','-i',str(path),'-filter_complex',filters,'-map','[out]','-ar','48000','-ac','1',str(paced)])
+    os.replace(paced,path)
+    def moved(t):return t-sum(max(0,min(t,b)-a) for a,b in cuts if t>a)
+    times=[{**b,'start':moved(b['start']),'end':max(moved(b['end']),moved(b['start'])+.03)} for b in boundaries]
+    return times,{'removed_seconds':sum(b-a for a,b in cuts),'cuts':cuts,'retained_pause_seconds':.32}
 
 
 def caption_cues(boundaries, profile, compact=False):

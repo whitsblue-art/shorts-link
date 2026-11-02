@@ -31,7 +31,7 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-nanum
           python -m pip install -r requirements.txt
       - name: Prepare reviewed preview only
-        # Usage revision: pass the affiliate reference and actual footage to the story reviewer.
+        # Usage revision: compact detected long pauses and retime every caption boundary.
         # Preview only: source reuse permission is checked separately before publication.
         # No YouTube credential, catalog registration or release step is provided.
         run: python main.py --prepare --revise-preview

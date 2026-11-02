@@ -41,7 +41,7 @@ def prepare_episode(ai, ledger, episode, assets, settings, directory):
             artifact_run_attempt=os.getenv('GITHUB_RUN_ATTEMPT','1'))
     print(f'[stage] Script review for catalog {episode["catalogue_id"]}',flush=True)
     meta_path = directory / "meta.json"
-    if meta_path.exists() and json.loads(meta_path.read_text(encoding='utf-8')).get('style_version')==script.STYLE_VERSION:
+    if meta_path.exists() and json.loads(meta_path.read_text(encoding='utf-8')).get('script_version')==script.SCRIPT_VERSION:
         meta=json.loads(meta_path.read_text(encoding='utf-8'))
         atomic_json(directory/'script_review.json',script.review(ai,episode['product'],episode['catalogue_id'],meta,directory))
     else:
