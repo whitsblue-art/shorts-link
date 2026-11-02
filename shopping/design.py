@@ -32,6 +32,17 @@ def banner(canvas, text, y, size, color, background, max_lines=2):
 
 def overlay(scene):
     image = Image.new("RGBA", (1080, 1920))
+    if scene.get('style_version')==3:
+        draw=ImageDraw.Draw(image)
+        draw.rectangle((0,0,1080,575),fill=(250,248,244,255))
+        draw.rectangle((0,1690,1080,1920),fill=(250,248,244,255))
+        face=ImageFont.truetype(media.font_path(),42)
+        draw.text((65,100),'살림발견',font=face,fill=(0,105,95,255))
+        banner(image,scene['headline'],200,58,'black',(250,248,244,255),2)
+        face=ImageFont.truetype(media.font_path(),25)
+        draw.text((65,1825),'AI 음성 · '+DISCLOSURE[:24],font=face,fill=(65,65,65,255))
+        draw.text((65,1860),DISCLOSURE[24:],font=face,fill=(65,65,65,255))
+        return image
     banner(image, scene["badge"], 180, 48, "black", (255, 215, 0, 240), 1)
     banner(image, scene["hook"], 290, 66, "white", (0, 0, 0, 200))
     banner(image, scene["sub"], 1520, 52, (0, 255, 200, 255), (0, 0, 0, 215), 1)
@@ -43,6 +54,10 @@ def overlay(scene):
 
 
 def compose(source, scene):
+    if scene.get('style_version')==3:
+        image=Image.new('RGBA',(1080,1920),'#faf8f4')
+        fg=(ImageOps.contain if scene.get('media_fit')=='contain' else ImageOps.fit)(source.convert('RGB'),(1080,1080),Image.Resampling.LANCZOS)
+        image.paste(fg,((1080-fg.width)//2,590+(1080-fg.height)//2));image.alpha_composite(overlay(scene));return image.convert('RGB')
     background = ImageOps.fit(source.convert("RGB"), (1080, 1920)).filter(ImageFilter.GaussianBlur(28))
     background = ImageEnhance.Brightness(background).enhance(.30).convert("RGBA")
     foreground = ImageOps.contain(source.convert("RGB"), (1000, 900), Image.Resampling.LANCZOS)
@@ -57,13 +72,15 @@ def render(meta, directory, timings):
     if len(meta["scenes"]) != 3 or len(timings) != 3:
         raise GateError("Exactly three separately verified scenes and voices required")
     for scene, boundaries in zip(meta["scenes"], timings):
+        usage=meta.get('style_version')==3
+        scene={**scene,'style_version':meta.get('style_version'),'headline':meta['thumbnail_text']}
         n = scene["scene_num"]
         audio = directory / f"voice_{n:02d}.mp3"
         dur = media.duration(audio)
         length = math.ceil(dur * 30) / 30
         media.validate_boundaries(boundaries, scene["narration"], dur)
-        cues = media.caption_cues(boundaries, profile)
-        media.write_ass(directory / f"captions_{n:02d}.ass", cues, profile)
+        cues = media.caption_cues(boundaries, profile,compact=usage)
+        media.write_ass(directory / f"captions_{n:02d}.ass", cues, profile,usage=usage)
         with Image.open(directory / f"scene_{n:02d}.jpg") as source:
             compose(source, scene).save(directory / f"framed_{n:02d}.jpg", quality=95)
         if scene["media_kind"] == "video":
@@ -74,6 +91,11 @@ def render(meta, directory, timings):
                 "[fg]scale=1000:900:force_original_aspect_ratio=decrease,setsar=1[f];"
                 "[b][f]overlay=(W-w)/2:550+(900-h)/2[base];"
                 f"[base][1:v]overlay=0:0,subtitles=filename=captions_{n:02d}.ass,fps=30[v]")
+            if usage:
+                fit=("scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:color=0xfaf8f4" if scene.get('media_fit')=='contain' else "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080")
+                filters=(f"[0:v]{fit},setsar=1,"
+                    "pad=1080:1920:0:590:color=0xfaf8f4[base];"
+                    f"[base][1:v]overlay=0:0,subtitles=filename=captions_{n:02d}.ass,fps=30[v]")
             mapping = ["-filter_complex", filters, "-map", "[v]", "-map", "2:a:0"]
         elif scene["media_kind"] == "image":
             inputs = ["-loop", "1", "-framerate", "30", "-i", f"framed_{n:02d}.jpg", "-i", audio.name]
@@ -109,7 +131,7 @@ def review(ai, meta, video, manifest, directory):
             run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", str(at), "-i", str(video), "-frames:v", "1", str(frame)])
             crop = directory / "caption_crop.jpg"
             with Image.open(frame) as source:
-                source.crop((0, 1635, 1080, 1835)).save(crop)
+                source.crop((0,380,1080,560) if meta.get('style_version')==3 else (0,1635,1080,1835)).save(crop)
             expected = next((c["lines"] for c in manifest["cues"] if c["start"] <= at < c["end"]), [])
             result = ai.json('Transcribe ONLY the visible Korean subtitle. Do not infer missing text. Return {"subtitle_text":""}.',
                 [image_part(crop)], review=True, schema={"type": "OBJECT", "required": ["subtitle_text"], "properties": {"subtitle_text": {"type": "STRING"}}})
@@ -118,9 +140,13 @@ def review(ai, meta, video, manifest, directory):
                 "Product must remain identifiable in the sharp central media window; ignore the decorative blurred background. "
                 "All banners and current caption fragment must be legible, within bounds and separated from the product. "
                 "Timed captions intentionally show only the CURRENT fragment, not the entire narration. "
+                "For usage style, only the fixed headline and current narration caption are rendered; "
+                "badge/hook/sub are editorial metadata, not additional required banners. "
+                "Check the precise product noun and that the CURRENT caption's action is supported by this actual scene; "
+                "a description of a head must not imply that an entire faucet is supplied. "
                 + PRODUCT_IDENTITY_RULES
                 + json.dumps({"title": meta["product_title"], "scene": {k: scene[k] for k in ("badge", "hook", "sub")}, "current_caption": expected}, ensure_ascii=False),
-                ["product_identity", "legibility", "safe_bounds", "no_obscured_product"],
+                ["product_identity", "legibility", "safe_bounds", "no_obscured_product"] + (['caption_action_alignment','correct_product_noun'] if meta.get('style_version')==3 else []),
                 [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), {"text": "ENCODED FRAME"}, image_part(frame)])
             samples.append({"at": at, "ocr": result, "review": verdict})
             atomic_json(directory / "render_review.json", samples)
@@ -129,7 +155,7 @@ def review(ai, meta, video, manifest, directory):
 
 
 def thumbnail(ai, meta, directory):
-    scene = {**meta["scenes"][0], "hook": meta["thumbnail_text"]}
+    scene = {**meta["scenes"][0], "hook": meta["thumbnail_text"], 'style_version':meta.get('style_version'),'headline':meta['thumbnail_text']}
     with Image.open(directory / "scene_01.jpg") as source:
         image = compose(source, scene)
     path = directory / "thumbnail.jpg"

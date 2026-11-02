@@ -14,7 +14,7 @@ from PIL import Image
 from .core import GateError, AIUnavailable, atomic_json, fingerprint, normalize, require_pass, utc_now
 
 PROVIDER = 'openai'
-REVIEW_VERSION = 2
+REVIEW_VERSION = 3
 PRODUCT_IDENTITY_RULES = (
     "Physical model/variant means the MAIN PRODUCT's hardware, color and connection type. "
     "A package quantity or bundled replacement-filter count is not a different hardware variant. "

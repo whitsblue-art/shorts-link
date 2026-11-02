@@ -25,7 +25,7 @@ class Profile:
     maximum: float
 
 
-PROFILES = {"shorts": Profile(1080, 1920, 30, 25, 120),
+PROFILES = {"shorts": Profile(1080, 1920, 30, 18, 120),
             "longform": Profile(1920, 1080, 30, 300, 900)}
 
 
@@ -83,8 +83,8 @@ def validate_boundaries(boundaries, narration, audio_duration):
 
 async def make_voice(narration, raw, kind):
     boundaries = []
-    speech = edge_tts.Communicate(narration, voice=os.getenv("TTS_VOICE", "ko-KR-SunHiNeural"),
-        rate="+15%" if kind == "shorts" else "+0%", pitch="+0Hz", boundary="WordBoundary")
+    speech = edge_tts.Communicate(narration, voice=os.getenv("TTS_VOICE", "ko-KR-InJoonNeural"),
+        rate=os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'), pitch="+0Hz", boundary="WordBoundary")
     with raw.open("wb") as handle:
         async for chunk in speech.stream():
             if chunk["type"] == "audio":
@@ -151,24 +151,27 @@ def generate_voices(ai, meta, kind, directory):
         report_path = directory / f"audio_review_{number:02d}.json"
         prior = json.loads(report_path.read_text(encoding="utf-8")) if report_path.is_file() else {}
         narration_hash = fingerprint(scene["narration"])
+        synthesis_hash=fingerprint({'text':scene['narration'],'voice':os.getenv('TTS_VOICE','ko-KR-InJoonNeural'),
+            'rate':os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'),'version':3})
+        signature_path=directory/f'synthesis_{number:02d}.json'
+        signature=json.loads(signature_path.read_text(encoding='utf-8')) if signature_path.exists() else {}
         reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 1
                     and prior.get('speech',{}).get('provider') == 'openai'
-                    and prior.get('speech',{}).get('review_version') == 2
+                    and prior.get('speech',{}).get('review_version') == 3
                     and prior.get('speech',{}).get('transcribe_model') == ai.transcribe_model
                     and prior.get('speech',{}).get('semantic_review',{}).get('review_model') == ai.audio_review_model
-                    and prior.get("narration_sha256") == narration_hash
+                    and prior.get("narration_sha256") == narration_hash and signature.get('sha256')==synthesis_hash
                     and prior.get("speech", {}).get("sha256") == fingerprint(clean.read_bytes())
                     and prior.get("speech", {}).get("semantic_review", {}).get("verdict") == "PASS")
         if reusable:
             boundaries = json.loads(timing_path.read_text(encoding="utf-8"))
             trim_report = prior["edge_trim"]
         else:
-            if raw.is_file() and raw_timing_path.is_file():
+            if raw.is_file() and raw_timing_path.is_file() and signature.get('sha256')==synthesis_hash:
                 raw_boundaries = json.loads(raw_timing_path.read_text(encoding="utf-8"))
-            elif raw.is_file() and timing_path.is_file() and not prior.get("edge_trim"):
-                raw_boundaries = json.loads(timing_path.read_text(encoding="utf-8"))
             else:
                 raw_boundaries = asyncio.run(make_voice(scene["narration"], raw, kind))
+                atomic_json(signature_path,{'sha256':synthesis_hash,'voice':os.getenv('TTS_VOICE','ko-KR-InJoonNeural')})
             validate_boundaries(raw_boundaries, scene["narration"], duration(raw))
             atomic_json(raw_timing_path, raw_boundaries)
             boundaries, trim_report = trim_voice_edges(raw, clean, raw_boundaries)
@@ -180,8 +183,8 @@ def generate_voices(ai, meta, kind, directory):
     return times
 
 
-def caption_cues(boundaries, profile):
-    face = ImageFont.truetype(font_path(), round(profile.height * (0.023 if profile.height > profile.width else 0.048)))
+def caption_cues(boundaries, profile, compact=False):
+    face = ImageFont.truetype(font_path(), 52 if compact else round(profile.height * (0.023 if profile.height > profile.width else 0.048)))
     max_width = profile.width * 0.82
     cues, lines, current, start, end = [], [], "", None, None
     for word in boundaries:
@@ -191,10 +194,10 @@ def caption_cues(boundaries, profile):
         if ImageDraw.Draw(Image.new("RGB", (1, 1))).textlength(text, font=face) > max_width:
             raise GateError("A subtitle token is wider than the safe area")
         candidate = (current + " " + text).strip()
-        if face.getlength(candidate) > max_width:
+        if face.getlength(candidate) > max_width or (compact and len(candidate)>21):
             lines.append(current)
             current = ""
-            if len(lines) == 2:
+            if len(lines) == (1 if compact else 2):
                 cues.append({"start": start, "end": end, "lines": lines})
                 start, lines = None, []
         if start is None:
@@ -224,7 +227,7 @@ def timestamp(seconds, ass=False):
     return f"{hours}:{minutes:02}:{seconds:02}.{fraction:02}" if ass else f"{hours:02}:{minutes:02}:{seconds:02},{fraction:03}"
 
 
-def write_ass(path, cues, profile):
+def write_ass(path, cues, profile, usage=False):
     font = ImageFont.truetype(font_path(), 40).getname()[0]
     size = round(profile.height * (0.023 if profile.height > profile.width else 0.048))
     margin = round(profile.height * (0.08 if profile.height > profile.width else 0.10))
@@ -243,6 +246,10 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         safe = [line.replace("\\", "").replace("{", "(").replace("}", ")") for line in cue["lines"]]
         caption = r"\N".join(safe)
         text += f"Dialogue: 0,{timestamp(cue['start'], True)},{timestamp(cue['end'], True)},Default,,0,0,0,,{caption}\n"
+    if usage:
+        text=text.replace(f'Style: Default,{font},{size},&H00FFFFFF,&H00FFFFFF,&H60000000,&H60000000',
+                          f'Style: Default,{font},52,&H00181818,&H00181818,&H00FFFFFF,&H00FFFFFF')
+        text=text.replace(f',3,5,0,2,60,60,{margin},1',',1,0,0,8,60,60,420,1')
     path.write_text(text, encoding="utf-8")
 
 
@@ -291,6 +298,6 @@ def compare_subtitle_text(expected, observed):
 
 def clean_intermediates(directory):
     for pattern in ("voice_raw_*.mp3", "clip_*.mp4", "framed_*.jpg", "concat.txt", "source_*.mp4",
-                    "candidate_*.jpg", "overlay_*.png", "caption_crop.jpg"):
+                    "source_*.gif", "candidate_*.jpg", "overlay_*.png", "caption_crop.jpg"):
         for path in directory.glob(pattern):
             path.unlink()

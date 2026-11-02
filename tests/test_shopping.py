@@ -40,7 +40,7 @@ def meta():
 
 def episode():
     return {"id": "a" * 24, "catalogue_id": 15, "format": "shorts", "product": product(), "meta": meta(),
-        "qa_passed": True, "qa_provider":"openai", "qa_version":2, "publication_allowed": True, "status": "verified", "poster_hashes": ["a", "b", "c"]}
+        "qa_passed": True, "qa_provider":"openai", "qa_version":3, "publication_allowed": True, "status": "verified", "poster_hashes": ["a", "b", "c"]}
 
 
 class ShoppingTests(unittest.TestCase):
@@ -239,7 +239,7 @@ class ShoppingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             directory = Path(temp)
             (directory / "video.mp4").write_bytes(b"changed")
-            row = {"qa_passed": True, "qa_provider":"openai", "qa_version":2, "asset_hashes": {"video.mp4": fingerprint(b"reviewed")}}
+            row = {"qa_passed": True, "qa_provider":"openai", "qa_version":3, "asset_hashes": {"video.mp4": fingerprint(b"reviewed")}}
             with self.assertRaises(GateError):
                 verified_files(row, directory)
 

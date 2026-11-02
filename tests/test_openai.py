@@ -125,7 +125,7 @@ class OpenAITests(unittest.TestCase):
         from shopping.core import fingerprint
         with tempfile.TemporaryDirectory() as temp:
             directory=Path(temp);(directory/'video.mp4').write_bytes(b'reviewed')
-            row={'qa_passed':True,'qa_provider':'openai','qa_version':2,'asset_hashes':{'video.mp4':fingerprint(b'reviewed')}}
+            row={'qa_passed':True,'qa_provider':'openai','qa_version':3,'asset_hashes':{'video.mp4':fingerprint(b'reviewed')}}
             verified_files(row,directory)
             (directory/'video.mp4').write_bytes(b'replaced')
             with self.assertRaisesRegex(GateError,'modified'):

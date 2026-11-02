@@ -82,3 +82,9 @@ FFmpeg/ffprobe와 한국어 글꼴이 필요합니다. Ubuntu에서는 `ffmpeg f
 ## OpenAI 연결 검사
 
 `OpenAI capability check`는 실제 API로 JSON 응답, 테스트 이미지 판독, 출처가 있는 검색, 독립 음성 인식과 원음 검수를 수행합니다. 이 검사는 상품 영상을 생성하거나 게시하지 않습니다. 이전 제공자나 수동 시범본의 검수 기록은 OpenAI 검수로 자동 승격되지 않습니다.
+# Usage-video revision (style / QA version 3)
+
+New preparations require three distinct, identity-reviewed moving demonstrations; still photos are not a completion fallback. Public manufacturer GIFs are decoded into actual motion clips and checked for frame variation. Preview-only source flags remain enforced before publishing.
+
+Script generation and independent review now receive the actual frames from each scene. Review checks the main product noun (e.g. filter head versus an entire faucet), visible action, conversational story and one final profile CTA. Compact timed captions sit above the footage; oversized sales banners are removed. The default voice is `ko-KR-InJoonNeural`, configurable via `TTS_VOICE` / `TTS_RATE`. Voice/text/settings signatures invalidate old audio caches. Old version-2 approvals cannot release version-3 content.
+

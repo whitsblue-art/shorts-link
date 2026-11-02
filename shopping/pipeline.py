@@ -25,7 +25,7 @@ def output(**values):
 
 
 def verified_files(episode, directory):
-    if episode.get('qa_provider') != 'openai' or episode.get('qa_version') != 2:
+    if episode.get('qa_provider') != 'openai' or episode.get('qa_version') != 3:
         raise GateError('This episode requires the current OpenAI verification gates before release')
     for name, expected in episode.get("asset_hashes", {}).items():
         path = directory / name
@@ -38,9 +38,9 @@ def verified_files(episode, directory):
 def prepare_episode(ai, ledger, episode, assets, settings, directory):
     print(f'[stage] Script review for catalog {episode["catalogue_id"]}',flush=True)
     meta_path = directory / "meta.json"
-    if meta_path.exists():
+    if meta_path.exists() and json.loads(meta_path.read_text(encoding='utf-8')).get('style_version')==script.STYLE_VERSION:
         meta=json.loads(meta_path.read_text(encoding='utf-8'))
-        atomic_json(directory/'script_review.json',script.review(ai,episode['product'],episode['catalogue_id'],meta))
+        atomic_json(directory/'script_review.json',script.review(ai,episode['product'],episode['catalogue_id'],meta,directory))
     else:
         meta=script.generate(ai,episode['product'],episode['catalogue_id'],assets,directory)
     script.validate(meta, episode["catalogue_id"])
@@ -62,7 +62,7 @@ def prepare_episode(ai, ledger, episode, assets, settings, directory):
     names = ["final_shorts.mp4", "thumbnail.jpg", "meta.json", "assets.json", "reference.jpg"]
     names += [f"scene_{n:02d}.jpg" for n in range(1, 4)]
     hashes = {name: fingerprint((directory / name).read_bytes()) for name in names}
-    ledger.update(episode, status="verified", qa_passed=True, qa_provider='openai',qa_version=2,meta=meta,
+    ledger.update(episode, status="verified", qa_passed=True, qa_provider='openai',qa_version=3,meta=meta,
         publication_allowed=all(a.get("publication_allowed") is True for a in assets),
         poster_hashes=[hashes[f"scene_{n:02d}.jpg"] for n in range(1, 4)], asset_hashes=hashes,
         video_sha256=hashes[final.name], thumbnail_sha256=hashes[thumbnail.name], signal=signal,
@@ -89,7 +89,7 @@ def prepare(ledger, settings, publish):
         directory.mkdir(parents=True, exist_ok=True)
         if not (directory / "assets.json").exists():
             restore(ledger, pending, directory)
-        if pending.get("qa_passed") and pending.get('qa_provider') == 'openai' and pending.get('qa_version') == 2:
+        if pending.get("qa_passed") and pending.get('qa_provider') == 'openai' and pending.get('qa_version') == 3:
             verified_files(pending, directory)
             if publish and pending.get("publication_allowed") is not True:
                 assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
@@ -104,6 +104,9 @@ def prepare(ledger, settings, publish):
             return pending
         assets = json.loads((directory / "assets.json").read_text(encoding="utf-8"))
         ai=AI(ROOT/'current_episode/ai_usage.json')
+        if settings.get('require_demonstration_video') and any(a['kind']!='video' for a in assets):
+            ledger.update(pending,qa_passed=False,status='revising')
+            assets=collect(ai,pending['product'],[],settings,directory,for_publication=publish)
         from .assets import validate_product_media
         for asset in assets:
             frames=[directory/asset['poster']]

@@ -4,11 +4,44 @@
     "note": "First preview source registry. Every file must still pass actual OpenAI identity review. External source publication permissions remain unset.",
     "media": [
       {
+        "url": "https://gi.esmplus.com/puretec/ACF_Hsink/8510/at8510_005.gif",
+        "type": "video",
+        "source_title": "아토젯 클렌징 주방용 필터 헤드 코브라형 AJ-8510",
+        "source_url": "https://m.atojet.co.kr/product/detail.html?product_no=133",
+        "publication_allowed": false,
+        "crop": [
+          80,
+          0,
+          600,
+          427
+        ]
+      },
+      {
+        "url": "https://gi.esmplus.com/puretec/ACF_Hsink/8510/at8510_027.gif",
+        "type": "video",
+        "source_title": "아토젯 클렌징 주방용 필터 헤드 코브라형 AJ-8510",
+        "source_url": "https://m.atojet.co.kr/product/detail.html?product_no=133",
+        "publication_allowed": false,
+        "fit": "contain"
+      },
+      {
+        "url": "https://gi.esmplus.com/puretec/ACF_Hsink/8510/at8510_011.gif",
+        "type": "video",
+        "source_title": "아토젯 클렌징 주방용 필터 헤드 코브라형 AJ-8510",
+        "source_url": "https://m.atojet.co.kr/product/detail.html?product_no=133",
+        "publication_allowed": false
+      },
+      {
         "url": "https://down-tw.img.susercontent.com/file/sg-11134207-8227t-mhrta31s5r0gfd",
         "type": "image",
         "source_url": "https://shopee.tw/product/1560756420/51552462516",
         "source_title": "Atojet cleansing kitchen faucet filter, Cobra type, ACF SINK HEAD 2.0",
-        "crop": [230, 350, 850, 850],
+        "crop": [
+          230,
+          350,
+          850,
+          850
+        ],
         "publication_allowed": false
       },
       {
@@ -27,7 +60,12 @@
         "url": "https://gi.esmplus.com/puretec/ACF_Hsink/8510/at8510_034.jpg",
         "type": "image",
         "source_url": "https://m.atojet.co.kr/product/detail.html?product_no=133",
-        "crop": [300, 865, 900, 1340],
+        "crop": [
+          300,
+          865,
+          900,
+          1340
+        ],
         "publication_allowed": false
       }
     ]

@@ -192,6 +192,47 @@ def validate_product_media(ai, product, reference, files, source_title):
     return ai.judge(prompt, ["same_model", "same_variant", "clear_main_subject", "no_unrelated_stock"], attachments)
 
 
+def demonstration_clip(ai, product, reference, candidate, directory, number):
+    """Preserve actual GIF/video motion; no simulated motion from product stills."""
+    body, _, kind = fetch(candidate['url'], 80_000_000)
+    if 'html' in kind:
+        raise GateError('Video URL returned HTML')
+    original=directory/f'source_{number:02d}.gif' if body[:3]==b'GIF' else directory/f'source_{number:02d}.mp4'
+    original.write_bytes(body)
+    info=probe(original)
+    v=next(s for s in info['streams'] if s['codec_type']=='video')
+    crop=candidate.get('crop')
+    filters=[]
+    if crop:
+        if (len(crop)!=4 or any(type(n) is not int for n in crop) or not
+                (0<=crop[0]<crop[2]<=v['width'] and 0<=crop[1]<crop[3]<=v['height'])):
+            raise GateError('Invalid demonstration crop')
+        filters.append(f'crop={crop[2]-crop[0]}:{crop[3]-crop[1]}:{crop[0]}:{crop[1]}')
+    filters += ['fps=30','format=yuv420p']
+    clip=directory/f'scene_{number:02d}.mp4'
+    # FFmpeg assigns a display delay to GIF frames with absent/zero delays.
+    run(['ffmpeg','-v','error','-y','-i',str(original),'-t','12','-an','-vf',','.join(filters),
+         '-c:v','libx264','-preset','fast',str(clip)])
+    total=float(probe(clip)['format']['duration'])
+    if not 1<=total<=600:
+        raise GateError('Demonstration is too short to show an action')
+    frames=[]
+    for i,fraction in enumerate((.1,.5,.9)):
+        frame=directory/f'evidence_{number:02d}_{i}.jpg'
+        run(['ffmpeg','-v','error','-y','-ss',str(total*fraction),'-i',str(clip),'-frames:v','1',str(frame)])
+        frames.append(frame)
+    # Real pixel variation is required; encoded still images cannot pass as demonstrations.
+    from PIL import ImageChops, ImageStat
+    with Image.open(frames[0]) as first, Image.open(frames[-1]) as last:
+        change=sum(ImageStat.Stat(ImageChops.difference(first.convert('RGB'),last.convert('RGB'))).mean)/3
+    if change<.25:
+        raise GateError('Source contains no observable motion')
+    report=validate_product_media(ai,product,reference,frames,candidate.get('source_title',''))
+    poster=directory/f'scene_{number:02d}.jpg';poster.write_bytes(frames[1].read_bytes())
+    return {**candidate,'kind':'video','poster':poster.name,'clip':clip.name,'length':total,
+            'review':report,'motion_change':change,'source_sha256':fingerprint(body)}
+
+
 def collect(ai, product, siblings, settings, directory, for_publication=False):
     reference = directory / "reference.jpg"
     save_image(product["reference_image"], reference, minimum=180)
@@ -205,6 +246,17 @@ def collect(ai, product, siblings, settings, directory, for_publication=False):
         used.add(url)
         print(f'[media] Inspect candidate {len(used)}; approved scenes {len(approved)}/3',flush=True)
         try:
+            if settings.get('require_demonstration_video'):
+                if candidate['type']!='video':
+                    continue
+                asset=demonstration_clip(ai,product,reference,candidate,directory,len(approved)+1)
+                dhash=image_hash(directory/asset['poster'])
+                if any((dhash^old).bit_count()<=5 for old in hashes):
+                    continue
+                approved.append(asset);hashes.append(dhash)
+                attempts.append({'url':url,'outcome':'checked'})
+                if len(approved)==3:break
+                continue
             if candidate["type"] == "video":
                 if urlparse(url).path.lower().endswith(".m3u8"):
                     raise GateError("Streaming playlists are not downloaded as video files")
