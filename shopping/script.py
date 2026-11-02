@@ -5,7 +5,7 @@ from .core import GateError, AIUnavailable, atomic_json, normalize
 from .ai import image_part, PRODUCT_IDENTITY_RULES
 
 STYLE_VERSION = 3
-SCRIPT_VERSION = 4
+SCRIPT_VERSION = 5
 
 
 def visual_evidence(meta, directory):
@@ -96,6 +96,8 @@ def generate(ai, product, number, assets, directory):
         'Explain what makes the demonstrated use interesting. Avoid dull play-by-play such as water flowing down, '
         'listing left/middle/right, "보이지?", "모습도 보여", or repeating that the head is white. '
         'Use concise, friendly Korean explainer narration with varied sentence lengths and smooth transitions. '
+        'Keep brand names and model codes in description metadata, not spoken narration. '
+        'Use the precise everyday product noun in speech (for example 주방수전용 필터 헤드). '
         'No polite catalogue lecture, no repeated 상세페이지/호환/구성 확인 filler. No fabricated viral trends, hidden uses, '
         'before-after results or performance. Match EACH narration to its labelled scene frames. '
         'A filter HEAD is not a whole faucet. Use precise everyday product nouns; do not merely recite the listing title. '
