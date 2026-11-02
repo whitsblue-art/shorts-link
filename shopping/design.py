@@ -151,7 +151,10 @@ def review(ai, meta, video, manifest, directory):
             'The main product must be identifiable across the sequence and never replaced by an unrelated item. '
             'Changing spray modes needs temporal evidence, or a clearly labelled multi-panel comparison. '
             'All text must be legible, within bounds and separate from the product. '
-            'Usage style renders only the fixed headline and current timed caption, not editorial badge/hook/sub. '
+            'Expected usage layout: channel name 살림발견, fixed headline, current timed caption, '
+            'and AI/affiliate disclosure. Channel branding and disclosure are permitted and must remain readable. '
+            'Editorial badge/hook/sub fields are not additional required banners. Enforce the listed checks; '
+            'do not invent a prohibition on the channel name or the disclosure. '
             'A final profile CTA is a routing instruction; it does not require a filmed profile-page demonstration. '
             'Check precise product nouns: a filter head is not a whole faucet. '+PRODUCT_IDENTITY_RULES
             +json.dumps({'product':meta['product_title'],'narration':scene['narration'],'caption_samples':chapter},ensure_ascii=False),
@@ -168,9 +171,16 @@ def thumbnail(ai, meta, directory):
         image = compose(source, scene)
     path = directory / "thumbnail.jpg"
     image.save(path, quality=85)
+    context=[]
+    if meta.get('style_version')==3:
+        context=[{'text':'REVIEWED REAL DEMONSTRATION CONTEXT, for checking the global hook; these are not thumbnail candidates.'}]
+        context += [image_part(directory/f'scene_{i:02d}.jpg') for i in range(1,4)]
     result = ai.judge("Check shopping thumbnail: real product matches TARGET, intended main hook is exact, "
-        "legible, uncut, and supported by product title. " + PRODUCT_IDENTITY_RULES + json.dumps({"hook": meta["thumbnail_text"], "product": meta["product_title"]}, ensure_ascii=False),
+        "legible, uncut, and supported by product title OR directly demonstrated facts in the labelled real footage context. "
+        "A global hook can refer to functions demonstrated across the complete video. No invented measured efficacy. "
+        "The channel name 살림발견 and AI/affiliate disclosure are expected, permitted branding. "
+        + PRODUCT_IDENTITY_RULES + json.dumps({"hook": meta["thumbnail_text"], "product": meta["product_title"]}, ensure_ascii=False),
         ["product_identity", "correct_hook", "legibility", "truthful_claims"],
-        [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), {"text": "THUMBNAIL"}, image_part(path)])
+        [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), *context, {"text": "THUMBNAIL TO REVIEW"}, image_part(path)])
     atomic_json(directory / "thumbnail_review.json", {**result, "sha256": fingerprint(path.read_bytes())})
     return path
