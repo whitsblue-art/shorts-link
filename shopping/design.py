@@ -93,7 +93,8 @@ def render(meta, directory, timings):
                 f"[base][1:v]overlay=0:0,subtitles=filename=captions_{n:02d}.ass,fps=30[v]")
             if usage:
                 fit=("scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:color=0xfaf8f4" if scene.get('media_fit')=='contain' else "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080")
-                filters=(f"[0:v]{fit},setsar=1,"
+                cuts="scale=w='if(lt(mod(t,4),2),1080,1188)':h='if(lt(mod(t,4),2),1080,1188)':eval=frame,crop=1080:1080:(iw-1080)/2:(ih-1080)/2,"
+                filters=(f"[0:v]{fit},{cuts}setsar=1,"
                     "pad=1080:1920:0:590:color=0xfaf8f4[base];"
                     f"[base][1:v]overlay=0:0,subtitles=filename=captions_{n:02d}.ass,fps=30[v]")
             mapping = ["-filter_complex", filters, "-map", "[v]", "-map", "2:a:0"]
@@ -123,13 +124,13 @@ def render(meta, directory, timings):
 
 def review(ai, meta, video, manifest, directory):
     samples, elapsed = [], 0.0
+    attachments=[{'text':'TARGET affiliate reference'},image_part(directory/'reference.jpg')]
     for old in directory.glob('review_*.jpg'):
         old.unlink()
     atomic_json(directory/'render_review.json',[])
     for scene, length in zip(meta["scenes"], manifest["scene_durations"]):
         n = scene["scene_num"]
         chapter=[]
-        attachments=[{'text':'TARGET affiliate reference'},image_part(directory/'reference.jpg')]
         for fraction in ((.05,.25,.5,.75,.95) if meta.get('style_version')==3 else (.15,.5,.85)):
             at = elapsed + length * fraction
             frame = directory / f"review_{n}_{int(fraction*100)}.jpg"
@@ -143,25 +144,28 @@ def review(ai, meta, video, manifest, directory):
             media.compare_subtitle_text(expected, result["subtitle_text"])
             chapter.append({'at':at,'ocr':result,'expected':expected,'frame':frame.name})
             attachments += [{'text':f'ACTUAL ENCODED FRAME at {at:.3f}s'},image_part(frame)]
-        verdict=ai.judge(
-            'Review this chronological sequence of ACTUAL encoded frames against TARGET. '
-            'Verify the product identity and the narrated action using the sequence, not an isolated still. '
-            'A hand temporarily covering part of a control is occlusion, not proof of a different button: '
-            'compare unobscured views before/after. Actually contradictory visible hardware must still REJECT. '
-            'The main product must be identifiable across the sequence and never replaced by an unrelated item. '
-            'Changing spray modes needs temporal evidence, or a clearly labelled multi-panel comparison. '
-            'All text must be legible, within bounds and separate from the product. '
-            'Expected usage layout: channel name 살림발견, fixed headline, current timed caption, '
-            'and AI/affiliate disclosure. Channel branding and disclosure are permitted and must remain readable. '
-            'Editorial badge/hook/sub fields are not additional required banners. Enforce the listed checks; '
-            'do not invent a prohibition on the channel name or the disclosure. '
-            'A final profile CTA is a routing instruction; it does not require a filmed profile-page demonstration. '
-            'Check precise product nouns: a filter head is not a whole faucet. '+PRODUCT_IDENTITY_RULES
-            +json.dumps({'product':meta['product_title'],'narration':scene['narration'],'caption_samples':chapter},ensure_ascii=False),
-            ['product_identity','legibility','safe_bounds','no_obscured_product','caption_action_alignment','correct_product_noun'],attachments)
-        samples.extend({**row,'review':verdict,'review_scope':'chronological_scene_sequence'} for row in chapter)
-        atomic_json(directory/'render_review.json',samples)
+        samples.extend({**row,'scene_num':n} for row in chapter)
         elapsed += length
+    atomic_json(directory/'render_review.json',samples)
+    checks=['product_identity','legibility','safe_bounds','no_obscured_product','caption_action_alignment','correct_product_noun']
+    checks += [f'scene_{n}_{kind}' for n in range(1,4) for kind in ('identity','action')]
+    verdict=ai.judge(
+        'Review this COMPLETE three-scene video, represented by chronological ACTUAL encoded frames from EVERY scene. '
+        'Verify each scene identity and action separately, then the global headline against the COMPLETE video. '
+        'A global headline needs supporting evidence somewhere in the complete video, not full repetition in every scene. '
+        'Count claimed modes from actual frames and labelled comparisons, not metadata assertions alone. '
+        'Changing modes needs temporal evidence or a labelled comparison. '
+        'A hand temporarily covering a control is occlusion, not proof of a different button: compare before/after. '
+        'Actually contradictory visible hardware must REJECT. All scenes must remain identifiable. '
+        'Text must be readable, within bounds and separate from the product. Expected elements are the channel name '
+        '살림발견, fixed headline, timed captions and AI/affiliate disclosure; all are permitted. '
+        'Editorial badge/hook/sub fields are not additional required banners. '
+        'A final profile CTA is routing information, not a claim that a profile page is filmed. '
+        'A filter head must not be described as a whole faucet. Every per-scene check is mandatory. '+PRODUCT_IDENTITY_RULES
+        +json.dumps({'product':meta['product_title'],'headline':meta['thumbnail_text'],
+            'scenes':meta['scenes'],'caption_samples':samples,'scene_durations':manifest['scene_durations']},ensure_ascii=False),checks,attachments)
+    samples=[{**row,'review':verdict,'review_scope':'complete_video_chronological_all_scenes'} for row in samples]
+    atomic_json(directory/'render_review.json',samples)
     return samples
 
 

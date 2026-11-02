@@ -155,7 +155,7 @@ def generate_voices(ai, meta, kind, directory):
             'rate':os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'),'version':3})
         signature_path=directory/f'synthesis_{number:02d}.json'
         signature=json.loads(signature_path.read_text(encoding='utf-8')) if signature_path.exists() else {}
-        reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 2
+        reusable = (clean.is_file() and timing_path.is_file() and prior.get("edge_trim", {}).get("version") == 3
                     and prior.get('speech',{}).get('provider') == 'openai'
                     and prior.get('speech',{}).get('review_version') == 3
                     and prior.get('speech',{}).get('transcribe_model') == ai.transcribe_model
@@ -179,7 +179,11 @@ def generate_voices(ai, meta, kind, directory):
             boundaries, trim_report = trim_voice_edges(raw, clean, raw_boundaries)
             if kind=='shorts':
                 boundaries,pace=compact_voice_pauses(clean,boundaries)
-                trim_report={**trim_report,'version':2,'pause_compaction':pace}
+                paced=clean.with_name(clean.stem+'_tempo.mp3')
+                run(['ffmpeg','-v','error','-y','-i',str(clean),'-af','atempo=1.15',str(paced)])
+                os.replace(paced,clean)
+                boundaries=[{**b,'start':b['start']/1.15,'end':b['end']/1.15} for b in boundaries]
+                trim_report={**trim_report,'version':3,'pause_compaction':pace,'tempo':1.15}
             atomic_json(timing_path, boundaries)
         validate_boundaries(boundaries, scene["narration"], duration(clean))
         report = prior if reusable else {"signal": audio_quality(clean), "speech": review_audio(ai, clean, scene["narration"])}

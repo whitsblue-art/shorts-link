@@ -53,11 +53,11 @@ AI 처리는 OpenAI만 사용합니다. 기본 모델은 자료 탐색·대본·
 ]
 ```
 
-첫 시범 영상의 실제 사진 3장은 `product_sources.json`에 명시되어 있습니다. 등록된 자료도 매번 상품 일치 검수를 통과해야 합니다. `crop`은 원본 이미지 안의 실제 사진 영역을 고르는 정수 좌표 [left, top, right, bottom]이며, 서로 다른 사진을 복제해 채우는 용도로 사용하지 않습니다.
+이전 시범본의 사진과 새 사용 영상 소스는 `product_sources.json`에 명시되어 있습니다. 현재 설정은 움직이는 사용 영상만 채택합니다. 등록된 자료도 매번 상품 일치 검수를 통과해야 합니다. `crop`은 원본 이미지 안의 실제 사진 영역을 고르는 정수 좌표 [left, top, right, bottom]이며, 서로 다른 사진을 복제해 채우는 용도로 사용하지 않습니다.
 
 공개 검색으로 발견했지만 사용 권한을 확인하지 않은 리뷰는 시범 영상에서만 이용됩니다. 자동 게시 실행에서는 등록된 출처와 상품 판매 자료만 사용합니다. `approved_review_url_prefixes`에도 재사용 가능한 출처를 등록할 수 있습니다. 영상 하나에서 세 구간을 추출할 수 있으나, 각 구간의 시작·중간·끝에서 정확한 상품을 확인하고 장면 유사도 검사도 통과해야 합니다.
 
-대본은 상품명과 장면별 실제 프레임을 함께 보고 작성·검수합니다. 수전 전체와 필터 헤드를 구분하고 대사와 보이는 행동을 대조합니다. 검증되지 않은 성능·호환·최저가·직접 써 봤다는 표현을 막습니다. 프로필 안내는 끝에 한 번만 허용합니다. TTS 원음과 대본을 대조하며 발음·전달 방식도 검수하고, 실제 단어 타이밍으로 자막을 그립니다. 최종 파일 전체 디코딩, 검은 화면·무음·FPS·길이 검사, 장면별 3시점의 자막 OCR·상품 식별·가독성·행동 일치 검수도 수행합니다.
+대본은 상품명과 장면별 실제 프레임을 함께 보고 작성·검수합니다. 수전 전체와 필터 헤드를 구분하고 대사와 보이는 행동을 대조합니다. 검증되지 않은 성능·호환·최저가·직접 써 봤다는 표현을 막습니다. 프로필 안내는 끝에 한 번만 허용합니다. TTS 원음과 대본을 대조하며 발음·전달 방식도 검수하고, 실제 단어 타이밍으로 자막을 그립니다. 최종 파일 전체 디코딩, 검은 화면·무음·FPS·길이 검사, 장면별 5시점(총 15개)의 자막 OCR과 전체 영상의 시간 순서에 따른 상품 식별·가독성·행동 일치 검수도 수행합니다.
 
 썸네일 JPG를 생성·검수하고 API 등록을 시도합니다. Shorts에서 등록 기능을 거부하는 명확한 응답은 `thumbnail_status: manual_required`로 기록합니다. **쇼츠 썸네일 자동 등록 성공을 보장하지 않습니다.** 이미지 파일은 아티팩트에 남습니다. 등록 실패 시 공개도 막으려면 `SHORTS_THUMBNAIL_MODE=required`를 실행 환경에 설정합니다.
 
@@ -88,3 +88,5 @@ New preparations require three distinct, identity-reviewed moving demonstrations
 
 Script generation and independent review now receive the actual frames from each scene. Review checks the main product noun (e.g. filter head versus an entire faucet), visible action, conversational story and one final profile CTA. Compact timed captions sit above the footage; oversized sales banners are removed. The default voice is `ko-KR-HyunsuMultilingualNeural`, configurable via `TTS_VOICE` / `TTS_RATE`. Voice/text/settings signatures invalidate old audio caches. Old version-2 approvals cannot release version-3 content.
 
+
+사용 영상은 약 2초마다 가벼운 구도 전환을 적용합니다. 감지된 긴 무음의 중앙만 줄이고 모든 단어 타이밍을 보정하며, 최종 속도 보정 뒤의 음성을 다시 검수합니다. 전체 영상 검수는 세 장면의 실제 인코딩 프레임을 함께 비교하므로 전역 제목을 각 장면마다 전부 입증하도록 요구하지 않습니다. 실제로 다른 모델이 보이거나 대사와 행동이 다르면 여전히 중단합니다.
