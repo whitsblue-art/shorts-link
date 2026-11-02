@@ -36,84 +36,83 @@
         "is_rocket": true,
         "affiliate_link": "https://link.coupang.com/a/iiy862svaC"
       },
-      "status": "revising",
+      "status": "verified",
       "created_at": "2026-10-31T12:43:33.963655+00:00",
       "artifact_run_id": "41424776937",
       "artifact_run_attempt": "1",
-      "updated_at": "2026-11-02T09:57:34.511797+00:00",
-      "qa_passed": false,
+      "updated_at": "2026-11-02T09:58:52.908776+00:00",
+      "qa_passed": true,
       "qa_provider": "openai",
-      "qa_version": 2,
+      "qa_version": 3,
       "meta": {
-        "title": "주방수전 찾으세요? 아토젯 코브라형과 헤드필터 6p 구성 확인",
-        "description": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트 소개입니다. 구매 시 수수료를 받을 수 있는 제휴 링크입니다. 호환 여부와 상세 정보는 연결된 상품 페이지에서 확인해 주세요.",
-        "thumbnail_text": "코브라형 수전, 구성부터 확인",
+        "title": "필터 헤드 하나에 물줄기가 세 가지?",
+        "description": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트. 기존 수전이 아닌 장착된 주방수전용 필터 헤드를 중심으로, 세 가지 분사 형태와 접시 세척 장면을 담은 약 25초 실사용 쇼츠.",
+        "thumbnail_text": "필터 헤드 하나에 물줄기가 세 가지?",
         "scenes": [
           {
             "scene_num": 1,
-            "narration": "주방수전을 찾고 계신데 어떤 구성인지부터 궁금하셨나요? 아토젯 클렌징 주방수전 코브라형을 살펴보세요. 설치할 곳에 맞는지는 상품 페이지에서 확인해 주세요.",
-            "badge": "추천 꿀템 NO.15",
-            "hook": "주방수전, 구성부터 보세요",
-            "sub": "호환 정보는 상세페이지",
-            "visual_prompt": "An affiliate shopping introduction featuring the actual Atोजet Cleansing cobra-type kitchen faucet from the linked product listing, beside a kitchen sink. Product appearance is shown only through the listing's actual product imagery, without water-flow demonstrations or performance comparisons.",
-            "media_kind": "image"
+            "narration": "주방수전용 필터 헤드, 물줄기가 한 가지가 아니네? 한데 모여 나오다가 가는 줄기로 퍼져. 같은 헤드인데 분사 모양이 달라지는 게 포인트야.",
+            "badge": "달라지는 물줄기",
+            "hook": "필터 헤드 하나에 물줄기가 세 가지?",
+            "sub": "모였다가 넓게 퍼져",
+            "visual_prompt": "기존 곡선형 수전 끝에 장착된 필터 헤드를 가까이 보여준다. 모인 물줄기에서 가는 여러 줄기의 분사로 바뀌는 실제 장면을 사용한다.",
+            "media_kind": "video",
+            "media_fit": "cover"
           },
           {
             "scene_num": 2,
-            "narration": "상품명에 안내된 구성은 아토젯 클렌징 주방수전 코브라형과 헤드필터 육 개, 한 세트입니다. 크기와 설치 조건 등 자세한 정보는 연결된 상품 페이지에서 확인해 주세요.",
-            "badge": "상품명 기준 구성",
-            "hook": "코브라형 + 헤드필터 6p",
-            "sub": "1세트 구성 확인",
-            "visual_prompt": "The actual Atojet Cleansing cobra-type kitchen faucet and six head filters, presented using the linked listing's product imagery in a clean catalog layout. Concise labels identify the cobra-type faucet, six head filters, and one-set configuration; no dimensions or performance graphics appear.",
-            "media_kind": "image"
+            "narration": "비교하니 차이가 더 또렷해. 중앙으로 모으거나 바깥으로 펼치고, 둘을 함께 쓰기도 해. 물이 닿는 범위가 이렇게 달라지는 거야.",
+            "badge": "세 가지 분사",
+            "hook": "모아서, 펼쳐서, 함께",
+            "sub": "분사 범위를 비교해",
+            "visual_prompt": "중앙홀 분사, 중앙홀과 외곽 동시 분사, 외곽 분사가 나란히 표시된 실제 비교 화면을 사용한다. 각 물줄기의 모양과 폭을 그대로 보여준다.",
+            "media_kind": "video",
+            "media_fit": "contain"
           },
           {
             "scene_num": 3,
-            "narration": "이 구성이 궁금하시다면 프로필 링크에서 15번 검색해 주세요. 연결된 상품 페이지에서 호환 여부와 상세 정보를 확인하신 뒤 선택해 주세요. 구매 시 수수료를 받을 수 있습니다.",
-            "badge": "상품 정보 확인",
-            "hook": "프로필에서 15번 확인",
+            "narration": "접시에는 펼쳐진 물줄기가 닿네. 한 손으로 접시를 기울이고 다른 손으로 문지르며 씻어. 제품은 프로필 링크에서 15번.",
+            "badge": "접시 세척에 사용",
+            "hook": "접시에 닿는 분사 범위",
             "sub": "프로필 링크에서 [15번] 검색!",
-            "visual_prompt": "A profile catalog context with entry number 15 displaying the actual linked listing image of the Atojet Cleansing cobra-type kitchen faucet with six head filters, one set. The product card sits beside a concise affiliate disclosure, with no price, ratings, stock status, or performance claims.",
-            "media_kind": "image"
+            "visual_prompt": "필터 헤드에서 분사되는 물 아래에 흰 접시를 기울여 든다. 한 손으로 접시를 잡고 다른 손으로 접시 표면을 문지르는 실제 세척 장면을 보여준다.",
+            "media_kind": "video",
+            "media_fit": "cover"
           }
         ],
+        "style_version": 3,
+        "script_version": 5,
         "product_title": "아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트",
-        "upload_description": "쿠팡 파트너스 활동으로 일정액의 수수료를 제공받습니다.\n\n아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트 소개입니다. 구매 시 수수료를 받을 수 있는 제휴 링크입니다. 호환 여부와 상세 정보는 연결된 상품 페이지에서 확인해 주세요.\n\n상품 정보: 채널 프로필 링크에서 [15번] 검색\nhttps://whitsblue-art.github.io/shorts-link/\n가격·옵션·호환 여부는 상품 페이지에서 확인하세요.\n#Shorts #쿠팡파트너스 #생활용품"
+        "upload_description": "쿠팡 파트너스 활동으로 일정액의 수수료를 제공받습니다.\n\n아토젯 클렌징 주방수전 코브라형 + 헤드필터 6p, 1세트. 기존 수전이 아닌 장착된 주방수전용 필터 헤드를 중심으로, 세 가지 분사 형태와 접시 세척 장면을 담은 약 25초 실사용 쇼츠.\n\n상품 정보: 채널 프로필 링크에서 [15번] 검색\nhttps://whitsblue-art.github.io/shorts-link/\n가격·옵션·호환 여부는 상품 페이지에서 확인하세요.\n#Shorts #쿠팡파트너스 #생활용품"
       },
       "publication_allowed": false,
       "poster_hashes": [
-        "3655637c2b04ef480fc7f686cda534010aa1ec0a2750e9287407ca8b1217587e",
-        "c1c0708430d89cfd6cc7a338fe5606850c21d18cc758978ad2998e33afa93567",
-        "6038745b332a77f309572a8914e13adb8e5cacfdf6f049c3c5bfbe843fdcbf96"
+        "692eca099ee2d4978af2c5f3970a3abac71662fcdb926c7d9e73aa4b4509077c",
+        "fce7fce0a10f2a0e73de66256007d77846cae4b808acf88379512188f1dc28d5",
+        "aff9d8bcd48d8a0e7a22c2860f43a613c3dd8d72af1132f16a7590ef51605053"
       ],
       "asset_hashes": {
-        "final_shorts.mp4": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf",
-        "thumbnail.jpg": "b012111c1cac07bc811bff2d2f386bf8c47a6b02d0422f3413414d40b73bc6f8",
-        "meta.json": "5f78f2568c9ec9c970c5ca17d363349e23d0e3a7be666dbd0370960e1ad1394a",
-        "assets.json": "566519787da26a41791f5c51a49c93cc1d30777452b47e599b98ca42259a2e18",
+        "final_shorts.mp4": "2cfeb9319ab82d82c144809c15cf9236efc69e7b9880f9b2d205bc72e02f727d",
+        "thumbnail.jpg": "0e59395d93e0ac7f77017e6a62bce81c9c0f3034451ee81e565f8ea764dea7e2",
+        "meta.json": "2ca7d922d21f31e2765b5dd3a5dd1e42d3880bf5dcbe18b3249899be077b0978",
+        "assets.json": "80ca2fb5916c5e28e1913d2743d4183449944c629745b0e765483db816d9ce4e",
         "reference.jpg": "ea6762e3cac9a4c7b3031375a71094c850f1029f6006053fa86dc59b348c075f",
-        "scene_01.jpg": "3655637c2b04ef480fc7f686cda534010aa1ec0a2750e9287407ca8b1217587e",
-        "scene_02.jpg": "c1c0708430d89cfd6cc7a338fe5606850c21d18cc758978ad2998e33afa93567",
-        "scene_03.jpg": "6038745b332a77f309572a8914e13adb8e5cacfdf6f049c3c5bfbe843fdcbf96"
+        "scene_01.jpg": "692eca099ee2d4978af2c5f3970a3abac71662fcdb926c7d9e73aa4b4509077c",
+        "scene_02.jpg": "fce7fce0a10f2a0e73de66256007d77846cae4b808acf88379512188f1dc28d5",
+        "scene_03.jpg": "aff9d8bcd48d8a0e7a22c2860f43a613c3dd8d72af1132f16a7590ef51605053"
       },
-      "video_sha256": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf",
-      "thumbnail_sha256": "b012111c1cac07bc811bff2d2f386bf8c47a6b02d0422f3413414d40b73bc6f8",
+      "video_sha256": "2cfeb9319ab82d82c144809c15cf9236efc69e7b9880f9b2d205bc72e02f727d",
+      "thumbnail_sha256": "0e59395d93e0ac7f77017e6a62bce81c9c0f3034451ee81e565f8ea764dea7e2",
       "signal": {
-        "duration": 35.114,
+        "duration": 25.834,
         "signal": {
-          "mean_db": -19.7,
-          "silences": [
-            0.878979,
-            0.8735,
-            0.904813,
-            0.873792,
-            0.877646
-          ],
-          "duration": 35.114
+          "mean_db": -19.9,
+          "silences": [],
+          "duration": 25.834
         },
-        "sha256": "c9a096adc437b9a8ee091278672e8de309676a7d34bf704a6a452f428b0a00bf"
+        "sha256": "2cfeb9319ab82d82c144809c15cf9236efc69e7b9880f9b2d205bc72e02f727d"
       }
     }
   },
-  "updated_at": "2026-11-02T09:57:34.511814+00:00"
+  "updated_at": "2026-11-02T09:58:52.908793+00:00"
 }
