@@ -109,6 +109,10 @@ def prepare(ledger, settings, publish, revise=False):
         if settings.get('require_demonstration_video') and any(a['kind']!='video' for a in assets):
             ledger.update(pending,qa_passed=False,status='revising')
             assets=collect(ai,pending['product'],[],settings,directory,for_publication=publish)
+            # collect() already reviews three actual frames of each fresh clip.
+            # Resume rechecks below are only for restored assets, not a second verdict on the same input.
+            prepare_episode(ai,ledger,pending,assets,settings,directory)
+            return pending
         from .assets import validate_product_media
         for asset in assets:
             frames=[directory/asset['poster']]

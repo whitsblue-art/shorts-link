@@ -40,8 +40,8 @@ def overlay(scene):
         draw.text((65,100),'살림발견',font=face,fill=(0,105,95,255))
         banner(image,scene['headline'],200,58,'black',(250,248,244,255),2)
         face=ImageFont.truetype(media.font_path(),25)
-        draw.text((65,1825),'AI 음성 · '+DISCLOSURE[:24],font=face,fill=(65,65,65,255))
-        draw.text((65,1860),DISCLOSURE[24:],font=face,fill=(65,65,65,255))
+        draw.text((65,1825),'AI 음성 · 쿠팡 파트너스 활동으로',font=face,fill=(65,65,65,255))
+        draw.text((65,1860),'일정액의 수수료를 제공받습니다.',font=face,fill=(65,65,65,255))
         return image
     banner(image, scene["badge"], 180, 48, "black", (255, 215, 0, 240), 1)
     banner(image, scene["hook"], 290, 66, "white", (0, 0, 0, 200))
