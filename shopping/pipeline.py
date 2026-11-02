@@ -7,7 +7,7 @@ import shutil
 
 from .ai import AI
 from .artifacts import restore
-from .assets import collect, allowed_source
+from .assets import collect, allowed_source, reviewed_asset_matches
 from .catalogue import read_products, register, export_site, verify_live
 from .core import GateError, AIUnavailable, ROOT, atomic_json, fingerprint
 from .coupang import Coupang
@@ -36,6 +36,9 @@ def verified_files(episode, directory):
 
 
 def prepare_episode(ai, ledger, episode, assets, settings, directory):
+    if os.getenv('GITHUB_RUN_ID'):
+        ledger.update(episode,qa_passed=False,status='revising',artifact_run_id=os.environ['GITHUB_RUN_ID'],
+            artifact_run_attempt=os.getenv('GITHUB_RUN_ATTEMPT','1'))
     print(f'[stage] Script review for catalog {episode["catalogue_id"]}',flush=True)
     meta_path = directory / "meta.json"
     if meta_path.exists() and json.loads(meta_path.read_text(encoding='utf-8')).get('style_version')==script.STYLE_VERSION:
@@ -115,6 +118,8 @@ def prepare(ledger, settings, publish, revise=False):
             return pending
         from .assets import validate_product_media
         for asset in assets:
+            if reviewed_asset_matches(asset,directory):
+                continue
             frames=[directory/asset['poster']]
             if asset['kind']=='video':
                 from .core import run

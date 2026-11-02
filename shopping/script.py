@@ -9,6 +9,9 @@ STYLE_VERSION = 3
 
 def visual_evidence(meta, directory):
     parts = []
+    reference=directory/'reference.jpg'
+    if reference.exists():
+        parts += [{'text':'TARGET affiliate reference: verify the main filter HEAD model, not the host faucet. Spare filters are bundle contents, not required in each action frame.'},image_part(reference)]
     for scene in meta['scenes']:
         n = scene['scene_num']
         parts.append({'text': f'ACTUAL SCENE {n}: narration must describe only what this footage shows.'})

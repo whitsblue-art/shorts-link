@@ -230,7 +230,18 @@ def demonstration_clip(ai, product, reference, candidate, directory, number):
     report=validate_product_media(ai,product,reference,frames,candidate.get('source_title',''))
     poster=directory/f'scene_{number:02d}.jpg';poster.write_bytes(frames[1].read_bytes())
     return {**candidate,'kind':'video','poster':poster.name,'clip':clip.name,'length':total,
-            'review':report,'motion_change':change,'source_sha256':fingerprint(body)}
+            'review':report,'motion_change':change,'source_sha256':fingerprint(body),
+            'reviewed_files':{p.name:fingerprint(p.read_bytes()) for p in [clip,poster,*frames]}}
+
+
+def reviewed_asset_matches(asset,directory):
+    receipt=asset.get('review',{})
+    hashes=asset.get('reviewed_files',{})
+    return (receipt.get('provider')=='openai' and receipt.get('review_version')==3
+        and receipt.get('verdict')=='PASS' and bool(hashes)
+        and asset.get('clip') in hashes and asset.get('poster') in hashes
+        and all(Path(name).name==name and (directory/name).is_file()
+                and fingerprint((directory/name).read_bytes())==value for name,value in hashes.items()))
 
 
 def collect(ai, product, siblings, settings, directory, for_publication=False):
