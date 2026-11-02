@@ -94,6 +94,8 @@ def render(meta, directory, timings):
             if usage:
                 fit=("scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:color=0xfaf8f4" if scene.get('media_fit')=='contain' else "scale=1080:1080:force_original_aspect_ratio=increase,crop=1080:1080")
                 cuts="scale=w='if(lt(mod(t,4),2),1080,1188)':h='if(lt(mod(t,4),2),1080,1188)':eval=frame,crop=1080:1080:(iw-1080)/2:(ih-1080)/2,"
+                if scene.get('media_fit')=='contain':
+                    cuts=''  # Preserve all panels and embedded labels of comparison footage.
                 filters=(f"[0:v]{fit},{cuts}setsar=1,"
                     "pad=1080:1920:0:590:color=0xfaf8f4[base];"
                     f"[base][1:v]overlay=0:0,subtitles=filename=captions_{n:02d}.ass,fps=30[v]")
