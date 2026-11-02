@@ -38,9 +38,9 @@
       },
       "status": "revising",
       "created_at": "2026-10-31T12:43:33.963655+00:00",
-      "artifact_run_id": "41423989155",
+      "artifact_run_id": "41424776937",
       "artifact_run_attempt": "1",
-      "updated_at": "2026-11-02T09:57:31.243379+00:00",
+      "updated_at": "2026-11-02T09:57:34.511797+00:00",
       "qa_passed": false,
       "qa_provider": "openai",
       "qa_version": 2,
@@ -115,5 +115,5 @@
       }
     }
   },
-  "updated_at": "2026-11-02T09:57:32.315246+00:00"
+  "updated_at": "2026-11-02T09:57:34.511814+00:00"
 }
