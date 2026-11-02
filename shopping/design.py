@@ -123,9 +123,14 @@ def render(meta, directory, timings):
 
 def review(ai, meta, video, manifest, directory):
     samples, elapsed = [], 0.0
+    for old in directory.glob('review_*.jpg'):
+        old.unlink()
+    atomic_json(directory/'render_review.json',[])
     for scene, length in zip(meta["scenes"], manifest["scene_durations"]):
         n = scene["scene_num"]
-        for fraction in (.15, .5, .85):
+        chapter=[]
+        attachments=[{'text':'TARGET affiliate reference'},image_part(directory/'reference.jpg')]
+        for fraction in ((.05,.25,.5,.75,.95) if meta.get('style_version')==3 else (.15,.5,.85)):
             at = elapsed + length * fraction
             frame = directory / f"review_{n}_{int(fraction*100)}.jpg"
             run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", str(at), "-i", str(video), "-frames:v", "1", str(frame)])
@@ -136,20 +141,23 @@ def review(ai, meta, video, manifest, directory):
             result = ai.json('Transcribe ONLY the visible Korean subtitle. Do not infer missing text. Return {"subtitle_text":""}.',
                 [image_part(crop)], review=True, schema={"type": "OBJECT", "required": ["subtitle_text"], "properties": {"subtitle_text": {"type": "STRING"}}})
             media.compare_subtitle_text(expected, result["subtitle_text"])
-            verdict = ai.judge("Review this ACTUAL encoded shopping frame against TARGET product reference. "
-                "Product must remain identifiable in the sharp central media window; ignore the decorative blurred background. "
-                "All banners and current caption fragment must be legible, within bounds and separated from the product. "
-                "Timed captions intentionally show only the CURRENT fragment, not the entire narration. "
-                "For usage style, only the fixed headline and current narration caption are rendered; "
-                "badge/hook/sub are editorial metadata, not additional required banners. "
-                "Check the precise product noun and that the CURRENT caption's action is supported by this actual scene; "
-                "a description of a head must not imply that an entire faucet is supplied. "
-                + PRODUCT_IDENTITY_RULES
-                + json.dumps({"title": meta["product_title"], "scene": {k: scene[k] for k in ("badge", "hook", "sub")}, "current_caption": expected}, ensure_ascii=False),
-                ["product_identity", "legibility", "safe_bounds", "no_obscured_product"] + (['caption_action_alignment','correct_product_noun'] if meta.get('style_version')==3 else []),
-                [{"text": "TARGET reference"}, image_part(directory / "reference.jpg"), {"text": "ENCODED FRAME"}, image_part(frame)])
-            samples.append({"at": at, "ocr": result, "review": verdict})
-            atomic_json(directory / "render_review.json", samples)
+            chapter.append({'at':at,'ocr':result,'expected':expected,'frame':frame.name})
+            attachments += [{'text':f'ACTUAL ENCODED FRAME at {at:.3f}s'},image_part(frame)]
+        verdict=ai.judge(
+            'Review this chronological sequence of ACTUAL encoded frames against TARGET. '
+            'Verify the product identity and the narrated action using the sequence, not an isolated still. '
+            'A hand temporarily covering part of a control is occlusion, not proof of a different button: '
+            'compare unobscured views before/after. Actually contradictory visible hardware must still REJECT. '
+            'The main product must be identifiable across the sequence and never replaced by an unrelated item. '
+            'Changing spray modes needs temporal evidence, or a clearly labelled multi-panel comparison. '
+            'All text must be legible, within bounds and separate from the product. '
+            'Usage style renders only the fixed headline and current timed caption, not editorial badge/hook/sub. '
+            'A final profile CTA is a routing instruction; it does not require a filmed profile-page demonstration. '
+            'Check precise product nouns: a filter head is not a whole faucet. '+PRODUCT_IDENTITY_RULES
+            +json.dumps({'product':meta['product_title'],'narration':scene['narration'],'caption_samples':chapter},ensure_ascii=False),
+            ['product_identity','legibility','safe_bounds','no_obscured_product','caption_action_alignment','correct_product_noun'],attachments)
+        samples.extend({**row,'review':verdict,'review_scope':'chronological_scene_sequence'} for row in chapter)
+        atomic_json(directory/'render_review.json',samples)
         elapsed += length
     return samples
 

@@ -36,6 +36,8 @@ def verified_files(episode, directory):
 
 
 def prepare_episode(ai, ledger, episode, assets, settings, directory):
+    for old in ('final_shorts.mp4','thumbnail.jpg','render_manifest.json','render_review.json','thumbnail_review.json'):
+        (directory/old).unlink(missing_ok=True)
     if os.getenv('GITHUB_RUN_ID'):
         ledger.update(episode,qa_passed=False,status='revising',artifact_run_id=os.environ['GITHUB_RUN_ID'],
             artifact_run_attempt=os.getenv('GITHUB_RUN_ATTEMPT','1'))
