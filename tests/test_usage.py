@@ -22,6 +22,14 @@ def story():
 
 
 class UsageTests(unittest.TestCase):
+    def test_public_page_discovers_gif_demonstrations_without_turning_stills_into_video(self):
+        page=b'<meta property="og:image" content="https://example.org/still.jpg"><img data-src="/washing.gif"><video src="/demo.mp4"></video>'
+        found=assets.parse_page(page,'https://example.org/product')
+        types={r['url']:r['type'] for r in found}
+        self.assertEqual(types['https://example.org/washing.gif'],'video')
+        self.assertEqual(types['https://example.org/demo.mp4'],'video')
+        self.assertEqual(types['https://example.org/still.jpg'],'image')
+
     def test_reviewed_clip_cannot_be_reused_after_modification(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);(root/'clip.mp4').write_bytes(b'checked clip');(root/'poster.jpg').write_bytes(b'checked frame')

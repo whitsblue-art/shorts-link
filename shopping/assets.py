@@ -120,6 +120,16 @@ def parse_page(content, page_url):
                 found.append({"url": url, "type": "image" if match.group(1) == "urlDefault" else "video"})
         except ValueError:
             continue
+    # Manufacturer demonstrations are often animated GIFs embedded as images.
+    # Motion is verified after decoding; a .gif suffix alone never grants approval.
+    for tag in soup.find_all('img'):
+        url=urljoin(page_url,tag.get('data-src') or tag.get('src') or '')
+        if urlparse(url).path.lower().endswith('.gif'):
+            found.append({'url':url,'type':'video'})
+    for item in found:
+        if urlparse(item['url']).path.lower().endswith('.gif'):
+            item['type']='video'
+    found.sort(key=lambda item:item['type']!='video')
     return found[:24]
 
 
