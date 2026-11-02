@@ -83,7 +83,7 @@ def validate_boundaries(boundaries, narration, audio_duration):
 
 async def make_voice(narration, raw, kind):
     boundaries = []
-    speech = edge_tts.Communicate(narration, voice=os.getenv("TTS_VOICE", "ko-KR-InJoonNeural"),
+    speech = edge_tts.Communicate(narration, voice=os.getenv("TTS_VOICE", "ko-KR-HyunsuMultilingualNeural"),
         rate=os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'), pitch="+0Hz", boundary="WordBoundary")
     with raw.open("wb") as handle:
         async for chunk in speech.stream():
@@ -151,7 +151,7 @@ def generate_voices(ai, meta, kind, directory):
         report_path = directory / f"audio_review_{number:02d}.json"
         prior = json.loads(report_path.read_text(encoding="utf-8")) if report_path.is_file() else {}
         narration_hash = fingerprint(scene["narration"])
-        synthesis_hash=fingerprint({'text':scene['narration'],'voice':os.getenv('TTS_VOICE','ko-KR-InJoonNeural'),
+        synthesis_hash=fingerprint({'text':scene['narration'],'voice':os.getenv('TTS_VOICE','ko-KR-HyunsuMultilingualNeural'),
             'rate':os.getenv('TTS_RATE','+10%' if kind=='shorts' else '+0%'),'version':3})
         signature_path=directory/f'synthesis_{number:02d}.json'
         signature=json.loads(signature_path.read_text(encoding='utf-8')) if signature_path.exists() else {}
@@ -173,7 +173,7 @@ def generate_voices(ai, meta, kind, directory):
                 raw_boundaries = json.loads(raw_timing_path.read_text(encoding="utf-8"))
             else:
                 raw_boundaries = asyncio.run(make_voice(scene["narration"], raw, kind))
-                atomic_json(signature_path,{'sha256':synthesis_hash,'voice':os.getenv('TTS_VOICE','ko-KR-InJoonNeural')})
+                atomic_json(signature_path,{'sha256':synthesis_hash,'voice':os.getenv('TTS_VOICE','ko-KR-HyunsuMultilingualNeural')})
             validate_boundaries(raw_boundaries, scene["narration"], duration(raw))
             atomic_json(raw_timing_path, raw_boundaries)
             boundaries, trim_report = trim_voice_edges(raw, clean, raw_boundaries)
