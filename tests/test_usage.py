@@ -2,10 +2,11 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock,patch
+from io import BytesIO
 from PIL import Image
 
-from shopping import script, media
+from shopping import script, media, assets
 from shopping.core import GateError
 
 
@@ -20,6 +21,17 @@ def story():
 
 
 class UsageTests(unittest.TestCase):
+    def test_odd_sized_animated_source_is_encoded_without_losing_motion(self):
+        frames=[Image.new('RGB',(401,401),color) for color in ('white','black','red')]
+        data=BytesIO();frames[0].save(data,format='GIF',save_all=True,append_images=frames[1:],duration=500,loop=0)
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp)
+            with patch('shopping.assets.fetch',return_value=(data.getvalue(),'https://example.org/use.gif','image/gif')),patch('shopping.assets.validate_product_media',return_value={'verdict':'PASS'}):
+                asset=assets.demonstration_clip(Mock(),{},root/'unused.jpg',{'url':'https://example.org/use.gif'},root,1)
+            info=media.probe(root/asset['clip'])['streams'][0]
+            self.assertEqual((info['width'],info['height']),(402,402))
+            self.assertGreater(asset['motion_change'],.25)
+
     def test_one_final_cta_and_real_motion_required(self):
         script.validate(story(),15)
         for field,value in [('narration','프로필을 보세요. '+story()['scenes'][0]['narration']),('media_kind','image')]:

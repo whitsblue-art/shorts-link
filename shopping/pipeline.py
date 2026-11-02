@@ -73,7 +73,7 @@ def prepare_episode(ai, ledger, episode, assets, settings, directory):
     media.clean_intermediates(directory)
 
 
-def prepare(ledger, settings, publish):
+def prepare(ledger, settings, publish, revise=False):
     media.preflight()
     run_key = os.getenv("GITHUB_RUN_ID")
     prior_id = ledger.data["plans"].get(run_key) if run_key else None
@@ -82,6 +82,8 @@ def prepare(ledger, settings, publish):
         return prior  # GitHub's "Re-run jobs" is the same run, not a new publishing slot.
     pending = ledger.pending()
     if pending:
+        if revise:
+            ledger.update(pending,qa_passed=False,status='revising')
         if run_key:
             ledger.data["plans"][run_key] = pending["id"]
             ledger.save()
@@ -168,7 +170,10 @@ def main():
     phases.add_argument("--release", action="store_true")
     parser.add_argument("--publish", action="store_true", help="Use only reusable media; release is a separate phase")
     parser.add_argument("--episode", default="")
+    parser.add_argument('--revise-preview',action='store_true',help='Rebuild and re-review the pending preview; never publish')
     args = parser.parse_args()
+    if args.revise_preview and (args.publish or args.release or args.register_catalogue):
+        parser.error('Preview revision cannot register or publish')
     settings = json.loads((ROOT / "shopping_config.json").read_text(encoding="utf-8"))
     remote = os.getenv("GITHUB_ACTIONS") == "true"
     ledger = Ledger(remote=remote)
@@ -188,7 +193,7 @@ def main():
             video_id = publisher.publish(episode, directory / "final_shorts.mp4", directory / "thumbnail.jpg")
             print("Published: https://www.youtube.com/watch?v=" + video_id)
     else:
-        episode = prepare(ledger, settings, args.publish)
+        episode = prepare(ledger, settings, args.publish,args.revise_preview)
         if episode["status"] == "published":
             output(ready="false", episode_id=episode["id"])
             print("This run already published its episode; no additional upload")

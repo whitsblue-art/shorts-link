@@ -160,6 +160,8 @@ def generate_voices(ai, meta, kind, directory):
                     and prior.get('speech',{}).get('review_version') == 3
                     and prior.get('speech',{}).get('transcribe_model') == ai.transcribe_model
                     and prior.get('speech',{}).get('semantic_review',{}).get('review_model') == ai.audio_review_model
+                    and prior.get('speech',{}).get('semantic_review',{}).get('checks',{}).get('natural_pronunciation')=='PASS'
+                    and prior.get('speech',{}).get('semantic_review',{}).get('checks',{}).get('conversational_delivery')=='PASS'
                     and prior.get("narration_sha256") == narration_hash and signature.get('sha256')==synthesis_hash
                     and prior.get("speech", {}).get("sha256") == fingerprint(clean.read_bytes())
                     and prior.get("speech", {}).get("semantic_review", {}).get("verdict") == "PASS")

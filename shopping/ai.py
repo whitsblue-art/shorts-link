@@ -201,9 +201,11 @@ def review_audio(ai, path, narration):
     review = ai.judge('LISTEN to the original Korean audio and compare it with expected narration. '
         'The independent transcript is fallible; resolve ASR mistakes by listening. Korean homophones and '
         'equivalent numeral spellings are allowed only if actual speech matches the intended meaning. '
-        'Reject missing/extra content, wrong names, quantities, product numbers or negations.\n'
+        'Reject missing/extra content, wrong names, quantities, product numbers or negations. '
+        'Also assess delivery: Korean pronunciation must be intelligible and conversational, without '
+        'awkward syllable breaks, excessive speed, abrupt cutoffs or distracting singsong intonation.\n'
         + json.dumps({'expected': narration, 'transcript_hint': transcript}, ensure_ascii=False),
-        ['complete_content', 'names_dates_numbers', 'same_meaning'], [attachment])
+        ['complete_content', 'names_dates_numbers', 'same_meaning', 'natural_pronunciation', 'conversational_delivery'], [attachment])
     return {'provider': PROVIDER, 'review_version': REVIEW_VERSION, 'transcribe_model': ai.transcribe_model,
         'transcript': transcript, 'similarity': similarity, 'semantic_review': review,
         'sha256': fingerprint(path.read_bytes()), 'checked_at': utc_now()}

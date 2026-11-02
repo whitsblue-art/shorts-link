@@ -208,7 +208,7 @@ def demonstration_clip(ai, product, reference, candidate, directory, number):
                 (0<=crop[0]<crop[2]<=v['width'] and 0<=crop[1]<crop[3]<=v['height'])):
             raise GateError('Invalid demonstration crop')
         filters.append(f'crop={crop[2]-crop[0]}:{crop[3]-crop[1]}:{crop[0]}:{crop[1]}')
-    filters += ['fps=30','format=yuv420p']
+    filters += ['pad=ceil(iw/2)*2:ceil(ih/2)*2','fps=30','format=yuv420p']
     clip=directory/f'scene_{number:02d}.mp4'
     # FFmpeg assigns a display delay to GIF frames with absent/zero delays.
     run(['ffmpeg','-v','error','-y','-i',str(original),'-t','12','-an','-vf',','.join(filters),
